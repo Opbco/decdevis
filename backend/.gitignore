@@ -1,0 +1,5 @@
+venv
+migrations
+.env
+.vscode
+required.txt
