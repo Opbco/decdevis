@@ -1,0 +1,20 @@
+{
+  "home": "Home",
+  "login": "Log in",
+  "profile": "Profile",
+  "account": "Account",
+  "dashboard": "Dashboard",
+  "logout": "Log Out",
+  "openUserSettings": "Open settings",
+  "changeLanguage": "Change the language",
+  "enterCsvf": "Please enter a CSV file",
+  "uploadData": "Upload Data",
+  "chargefileData": "Load Data",
+  "delete": "Delete",
+  "thisIsIrreversible": "You won't be able to revert this!",
+  "sent": "Sent",
+  "cancel": "Cancel",
+  "yes": "Yes",
+  "confirm": "confirm",
+  "error": "Error"
+}

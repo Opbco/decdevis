@@ -1,0 +1,20 @@
+{
+  "home": "Acceuil",
+  "login": "Se connecter",
+  "profile": "Profile",
+  "account": "Mon Compte",
+  "dashboard": "Tableau de bord",
+  "logout": "Se déconnecter",
+  "openUserSettings": "Ouvrir le menu user",
+  "changeLanguage": "Changer la langue",
+  "enterCsvf": "SVP entrez un fichier CSV",
+  "chargefileData": "Charger les données",
+  "uploadData": "Envoyer les données",
+  "delete": "Supprimer",
+  "thisIsIrreversible": "Cette opération est irréversible!",
+  "sent": "Envoyé",
+  "cancel": "Annuler",
+  "yes": "Oui",
+  "confirm": "Confirmer",
+  "error": "Erreur"
+}

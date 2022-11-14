@@ -6,7 +6,7 @@ import jwt
 from dotenv import find_dotenv, load_dotenv
 from auth.auth import AuthError, requires_auth
 from models.models import Arrondissement, Departement, Role, Structure, setup_db, db, User, Region
-from .validate import validate_dateformat, validate_email_and_password, validate_user
+from .validate import validate_dateformat, validate_structure, validate_username_and_password, validate_user
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 from operator import or_
@@ -102,7 +102,7 @@ def create_app(test_config=None):
                     "error": "Bad request"
                 }), 400
             # validate input
-            is_validated = validate_email_and_password(
+            is_validated = validate_username_and_password(
                 data.get('email'), data.get('password'))
             if is_validated is not True:
                 return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 400
@@ -130,8 +130,8 @@ def create_app(test_config=None):
                 "success": False,
                 "message": "Wrong email or password"
             }), 404
-        except:
-            abort(500)
+        except Exception as e:
+            return jsonify({'success': False, "error": 500, 'message': str(e)}), 500
 
     '''
     api to manage regions
@@ -268,6 +268,7 @@ def create_app(test_config=None):
     @requires_auth('put:departements')
     def put_departements(current_user, departement_id):
         data = request.get_json()
+        print(data)
         name = data.get('name', None)
         region = data.get('region', None)
         if name is None or region is None:
@@ -278,7 +279,7 @@ def create_app(test_config=None):
             abort(404)
         departement_wname = Departement.query.filter_by(
             departement_name=name).one_or_none()
-        if departement_wname:
+        if departement.departement_name != name and departement_wname:
             return jsonify({'success': False, 'error': 400, 'message': 'That Departement already exist'}), 400
         try:
             departement.departement_name = name
@@ -348,6 +349,7 @@ def create_app(test_config=None):
     @requires_auth('post:arrondissements')
     def post_arrondissements(current_user):
         data = request.get_json()
+        print(data)
         name = data.get('name', None)
         departement = data.get('departement', None)
         if name is None or departement is None:
@@ -376,9 +378,9 @@ def create_app(test_config=None):
             id=arrondissement_id).one_or_none()
         if arrondissement is None:
             abort(404)
-        arrondissement_wname = Arrondissement.query.filter_by(
-            arrondissement_name=name).one_or_none()
-        if arrondissement_wname:
+        arrondissement_wname = Arrondissement.query.filter(
+            Arrondissement.arrondissement_name == name, Arrondissement.id != arrondissement_id).one_or_none()
+        if arrondissement.arrondissement_name != name and arrondissement_wname:
             return jsonify({'success': False, 'error': 400, 'message': 'That Arrondissement already exist'}), 400
         try:
             arrondissement.arrondissement_name = name
@@ -407,6 +409,98 @@ def create_app(test_config=None):
         try:
             arrondissement.delete()
             return jsonify({'success': True, 'message': f'the arrondissement with ID {arrondissement_id} has been deleted'}), 200
+        except Exception as e:
+            return jsonify({'success': False, "error": 500, 'message': str(e)}), 500
+
+    '''
+    api to manage structures
+    '''
+    @app.route('/api/v1/structures/<int:structure_id>')
+    @requires_auth('get:structures')
+    def get_structure_by_id(current_user, structure_id):
+        structure = Structure.query.filter_by(
+            id=structure_id).one_or_none()
+        if structure is None:
+            abort(404)
+        return jsonify({'success': True, 'data': structure.json()}), 200
+
+    @app.route('/api/v1/structures/<string:name>')
+    @requires_auth('get:structures')
+    def get_structure_by_name(current_user, name):
+        structures = Structure.query.filter(
+            Structure.sturcture_name.ilike(f'%{name}%')).all()
+        data = []
+        for structure in structures:
+            data.append(structure.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/structures', methods=["POST"])
+    @requires_auth('post:structures')
+    def post_structures(current_user):
+        data = request.get_json()
+        arrondissement_id = data.get('arrondissement', None)
+        is_validated = validate_structure(**data)
+        if is_validated is not True:
+            return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 409
+        arrondissement = Arrondissement.query.filter_by(
+            id=arrondissement_id).one_or_none()
+        if arrondissement:
+            return jsonify({'success': False, 'error': 404, 'message': 'That arrondissement doesnt exist'}), 404
+        try:
+            structure = Structure(data)
+            structure.insert()
+            return jsonify({'success': True, 'data': structure.json()}), 201
+        except:
+            abort(500)
+
+    @app.route('/api/v1/structures/<int:structure_id>', methods=["PUT"])
+    @requires_auth('put:structures')
+    def put_structures(current_user, structure_id):
+        data = request.get_json()
+        arrondissement_id = data.get('arrondissement', None)
+        is_validated = validate_structure(**data)
+        if is_validated is not True:
+            return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 409
+        structure = Structure.query.filter_by(
+            id=structure_id).one_or_none()
+        if structure:
+            return jsonify({'success': False, 'error': 404, 'message': 'That structure doesnt exist'}), 404
+        arrondissement = Arrondissement.query.filter_by(
+            id=arrondissement_id).one_or_none()
+        if arrondissement:
+            return jsonify({'success': False, 'error': 404, 'message': 'That arrondissement doesnt exist'}), 404
+        try:
+            structure.sturcture_name = data.get('name')
+            structure.structure_adresse = data.get('adresse')
+            structure.structure_contacts = data.get('contacts')
+            structure.structure_form = data.get('form')
+            structure.structure_language = data.get('language')
+            structure.structure_ordre = data.get('ordre')
+            structure.arrondissement_id = data.get('arrondissement')
+            structure.update()
+            return jsonify({'success': True, 'data': arrondissement.json()}), 200
+        except:
+            abort(500)
+
+    @app.route('/api/v1/structures')
+    @requires_auth('get:structures')
+    def get_all_structures(current_user):
+        structures = Structure.query.all()
+        data = []
+        for structure in structures:
+            data.append(structure.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/structures/<int:structure_id>', methods=["DELETE"])
+    @requires_auth('delete:structures')
+    def delete_structure_by_id(current_user, structure_id):
+        structure = Structure.query.filter_by(
+            id=structure_id).one_or_none()
+        if structure is None:
+            abort(404)
+        try:
+            structure.delete()
+            return jsonify({'success': True, 'message': f'the structure with ID {structure_id} has been deleted'}), 200
         except Exception as e:
             return jsonify({'success': False, "error": 500, 'message': str(e)}), 500
 

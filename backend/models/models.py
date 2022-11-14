@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
+from email.policy import default
 from time import timezone
+from operator import or_
 from sqlalchemy import Column, String, Integer, Boolean, Text, func
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash
@@ -40,13 +42,13 @@ class User(db.Model):
 
     """Get a active user by email"""
     @staticmethod
-    def get_by_email(email):
-        return User.query.filter(User.email == email, User.active == True).one_or_none()
+    def get_by_username_or_email(userdetail):
+        return User.query.filter(or_(User.email == userdetail, User.user_name == userdetail), User.active == True).one_or_none()
 
     """Login a user"""
     @staticmethod
     def login(email, password):
-        user = User.get_by_email(email)
+        user = User.get_by_username_or_email(email)
         if user is None or not check_password_hash(user.password, password):
             return
         return {'exp': datetime.utcnow() + timedelta(minutes=30), 'userid': user.id, 'username': user.user_name, 'email': user.email, 'role_name': user.role.role_name, 'permissions': user.role.permissions}
@@ -132,6 +134,9 @@ class Departement(db.Model):
     def json(self):
         return {'id': self.id, 'name': self.departement_name, 'region': self.region.json()}
 
+    def Shortjson(self):
+        return {'id': self.id, 'name': self.departement_name}
+
     def insert(self):
         db.session.add(self)
         db.session.commit()
@@ -157,7 +162,7 @@ class Arrondissement(db.Model):
         'Structure', backref='arrondissement', lazy=True)
 
     def json(self):
-        return {'id': self.id, 'name': self.arrondissement_name, 'departement': self.departement.json()}
+        return {'id': self.id, 'name': self.arrondissement_name, 'departement': self.departement.Shortjson(), 'region': self.departement.region.json()}
 
     def insert(self):
         db.session.add(self)
@@ -195,6 +200,18 @@ class Structure(db.Model):
                            server_default=func.now())
     arrondissement_id = Column(Integer, db.ForeignKey(
         'arrondissements.id'), nullable=False)
+    # Session Exam : relationship mamyTomany with Session through SessionCentre
+    sessioncentres = db.relationship(
+        'SessionCentre', backref='structure', lazy=True)
+
+    def __init__(self, data) -> None:
+        self.sturcture_name = data.get('name')
+        self.structure_adresse = data.get('adresse')
+        self.structure_contacts = data.get('contacts')
+        self.structure_form = data.get('form')
+        self.structure_language = data.get('language')
+        self.structure_ordre = data.get('ordre')
+        self.arrondissement_id = data.get('arrondissement')
 
     def insert(self):
         db.session.add(self)
@@ -208,10 +225,10 @@ class Structure(db.Model):
         db.session.commit()
 
     def shortJson(self):
-        return {'id': self.id, 'name': self.sturcture_name, 'adresse': self.structure_adresse, 'contacts': self.structure_contacts}
+        return {'id': self.id, 'name': self.sturcture_name, 'adresse': self.structure_adresse, 'contacts': self.structure_contacts, 'forme': self.structure_form, 'ordre': self.structure_ordre, 'language': self.structure_language}
 
     def json(self):
-        return {'id': self.id, 'name': self.sturcture_name, 'adresse': self.structure_adresse, 'contacts': self.structure_contacts, 'arrondissement': self.arrondissement.json()}
+        return {'id': self.id, 'name': self.sturcture_name, 'forme': self.structure_form, 'ordre': self.structure_ordre, 'language': self.structure_language, 'adresse': self.structure_adresse, 'contacts': self.structure_contacts, 'arrondissement': self.arrondissement.json()}
 
     @classmethod
     def getByID(cls, structure_id):
@@ -225,3 +242,110 @@ class Structure(db.Model):
 
     def __repr__(self):
         return f'<Structure ID: {self.id} Name: {self.sturcture_name} >'
+
+
+class Exam(db.Model):
+    __tablename__ = 'exams'
+    id = Column(Integer, primary_key=True)
+    exam_name = Column(String, nullable=False, unique=True)
+    sessions = db.relationship('Session', backref='exam', lazy=True)
+
+    def json(self):
+        return {'id': self.id, 'name': self.exam_name}
+
+    def insert(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def update(self):
+        db.session.commit()
+
+    @classmethod
+    def getByID(cls, _id):
+        find = cls.query.filter_by(id=_id).one_or_none()
+        return find
+
+    def __repr__(self):
+        return f'<Exam ID: {self.id} Name: {self.exam_name} >'
+
+
+class Session(db.Model):
+    __tablename__ = 'sessions'
+    id = Column(Integer, primary_key=True)
+    session_name = Column(String, nullable=False, unique=True)
+    exam_id = Column(Integer, db.ForeignKey(
+        'exams.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
+    nbr_subject_write = Column(Integer, db.CheckConstraint(
+        'nbr_subject_write > 2'), nullable=False, default=2)
+    # Structures : relationship mamyTomany with structure through SessionCentre
+    sessioncentres = db.relationship(
+        'SessionCentre', backref='session', lazy=True)
+
+    def json(self):
+        return {'id': self.id, 'name': self.session_name}
+
+    def insert(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def update(self):
+        db.session.commit()
+
+    @classmethod
+    def getByID(cls, _id):
+        find = cls.query.filter_by(id=_id).one_or_none()
+        return find
+
+    def __repr__(self):
+        return f'<Session ID: {self.id} Name: {self.session_name} >'
+
+
+class SessionCentre(db.Model):
+    __tablename__ = 'sessioncentres'
+    session_id = Column(Integer, db.ForeignKey(
+        'sessions.id', ondelete="CASCADE"), primary_key=True)
+    structure_id = Column(Integer, db.ForeignKey(
+        'structures.id', ondelete="CASCADE"), primary_key=True)
+    form_centre = Column(db.Enum('C', 'CA', 'SC', 'SA', name='formsCentre'),
+                         nullable=False, server_default='SC')
+    type_centre = Column(db.Enum('E', 'EC', 'ECD', name='typesCentre'),
+                         nullable=False, server_default='E')
+    isForDisabled = Column(Boolean, nullable=False, default=False)
+    nbr_candidat_ecrit = Column(Integer, db.CheckConstraint(
+        'nbr_candidat_ecrit > 50'), nullable=False, default=200)
+    nbr_copies_marked = Column(Integer, db.CheckConstraint(
+        'nbr_copies_marked > 500'), nullable=True, default=200)
+    nbr_candidat_delib = Column(Integer, db.CheckConstraint(
+        'nbr_candidat_delib > 50'), nullable=True, default=200)
+    nbr_candidat_oral = Column(Integer, db.CheckConstraint(
+        'nbr_candidat_oral > 50'), nullable=True, default=200)
+
+    def json(self):
+        return {'id': self.id, 'name': self.session_id}
+
+    def insert(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def update(self):
+        db.session.commit()
+
+    @classmethod
+    def getByID(cls, _id):
+        find = cls.query.filter_by(id=_id).one_or_none()
+        return find
+
+    def __repr__(self):
+        return f'<Session ID: {self.id} Name: {self.session_name} >'

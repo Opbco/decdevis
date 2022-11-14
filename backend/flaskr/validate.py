@@ -54,26 +54,53 @@ def validate_user(**args):
             'password': 'Password is invalid, Should be atleast 8 characters with \
                 upper and lower case letters, numbers and special characters'
         }
-    if not 2 <= len(args.get('user_name')) <= 30:
+    if not 4 <= len(args.get('user_name')) <= 30:
         return {
             'username': 'Username must be between 2 and 30 words'
         }
     return True
 
-def validate_email_and_password(email, password):
+
+def validate_username_and_password(username, password):
     """Email and Password Validator"""
-    if not (email and password):
+    if not (username and password):
         return {
-            'email': 'Email is required',
+            'username': 'Email / Username is required',
             'password': 'Password is required'
         }
-    if not validate_email(email):
+    if not 4 <= len(username):
         return {
-            'email': 'Email is invalid'
+            'username': 'Username or email valid'
         }
     if not validate_password(password):
         return {
             'password': 'Password is invalid, Should be atleast 8 characters with \
                 upper and lower case letters, numbers and special characters'
+        }
+    return True
+
+
+def validate_structure(**args):
+    """Structure Validator"""
+    if not args.get('name') or not args.get('adresse') or not args.get('contacts') or not args.get('form') or not args.get('language') or not args.get('ordre') or not args.get('arrondissement'):
+        return {
+            'name': 'Name is required',
+            'adresse': 'Adresse is required',
+            'contacts': 'Contacts is required',
+            'form': 'Form is required',
+            'language': 'Language is required',
+            'ordre': 'Ordre is required',
+            'arrondissement': 'Arrondissement is required'
+        }
+    if not isinstance(args.get('name'), str) or \
+            not isinstance(args.get('adresse'), str) or not isinstance(args.get('contacts'), str):
+        return {
+            'name': 'Name must be a string',
+            'adresse': 'Adresse must be a string',
+            'contacts': 'Contacts must be a string'
+        }
+    if not 4 <= len(args.get('name')) <= 30:
+        return {
+            'username': 'Username must be between 2 and 30 words'
         }
     return True
