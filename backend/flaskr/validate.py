@@ -1,6 +1,7 @@
 """Validator Module"""
 import re
 from dateutil import parser
+import datetime
 
 
 def validate(data, regex):
@@ -22,6 +23,13 @@ def validate_dateformat(date_str: str):
     except ValueError:
         res = False
     return res
+
+
+def get_current_session():
+    date = datetime.date.today()
+    if date.month > 6:
+        return f'{date.year}/{date.year + 1}'
+    return f'{date.year - 1}/{date.year}'
 
 
 def validate_email(email: str):
@@ -99,8 +107,8 @@ def validate_structure(**args):
             'adresse': 'Adresse must be a string',
             'contacts': 'Contacts must be a string'
         }
-    if not 4 <= len(args.get('name')) <= 30:
+    if not 4 <= len(args.get('name')):
         return {
-            'username': 'Username must be between 2 and 30 words'
+            'name': 'Name must be between 2 and 30 words'
         }
     return True

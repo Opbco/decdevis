@@ -5,8 +5,8 @@ from flask_migrate import Migrate
 import jwt
 from dotenv import find_dotenv, load_dotenv
 from auth.auth import AuthError, requires_auth
-from models.models import Arrondissement, Departement, Role, Structure, setup_db, db, User, Region
-from .validate import validate_dateformat, validate_structure, validate_username_and_password, validate_user
+from models.models import Arrondissement, Exam, Session, Departement, Role, Structure, setup_db, db, User, Region
+from .validate import get_current_session, validate_structure, validate_username_and_password, validate_user
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 from operator import or_
@@ -132,6 +132,176 @@ def create_app(test_config=None):
             }), 404
         except Exception as e:
             return jsonify({'success': False, "error": 500, 'message': str(e)}), 500
+
+    '''
+    api to manage exams
+    '''
+    @app.route('/api/v1/exams/<int:exam_id>')
+    @requires_auth('get:exams')
+    def get_exam_by_id(current_user, exam_id):
+        exam = Exam.query.filter_by(id=exam_id).one_or_none()
+        if exam is None:
+            abort(404)
+        return jsonify({'success': True, 'data': exam.json()}), 200
+
+    @app.route('/api/v1/exams/<string:name>')
+    @requires_auth('get:exams')
+    def get_exam_by_name(current_user, name):
+        exams = Exam.query.filter(
+            Exam.exam_name.ilike(f'%{name}%')).all()
+        data = []
+        for exam in exams:
+            data.append(exam.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/exams', methods=["POST"])
+    @requires_auth('post:exams')
+    def post_exams(current_user):
+        data = request.get_json()
+        if not data.get('name') or not data.get('code'):
+            abort(400)
+        exam = Exam.query.filter_by(exam_name=data["name"]).one_or_none()
+        if exam:
+            return jsonify({'success': False, 'error': 400, 'message': 'That Examination already exist'}), 400
+        try:
+            exam = Exam(exam_name=data["name"], exam_code=data['code'])
+            exam.insert()
+            return jsonify({'success': True, 'data': exam.json()}), 201
+        except:
+            abort(500)
+
+    @app.route('/api/v1/exams/<int:exam_id>', methods=["PUT"])
+    @requires_auth('put:exams')
+    def put_exams(current_user, exam_id):
+        data = request.get_json()
+        if not data.get('name') or not data.get('code'):
+            abort(400)
+        exam = Exam.query.filter_by(id=exam_id).one_or_none()
+        if exam is None:
+            abort(404)
+        exam_wname = Exam.query.filter_by(
+            exam_name=data["name"]).one_or_none()
+        if exam_wname is not None and exam_wname.id != exam_id:
+            return jsonify({'success': False, 'error': 400, 'message': 'That exam already exist'}), 400
+        try:
+            exam.exam_name = data["name"]
+            exam.exam_code = data["code"]
+            exam.update()
+            return jsonify({'success': True, 'data': exam.json()}), 200
+        except:
+            abort(500)
+
+    @app.route('/api/v1/exams')
+    @requires_auth('get:exams')
+    def get_all_exams(current_user):
+        exams = Exam.query.all()
+        data = []
+        for exam in exams:
+            data.append(exam.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/exams/<int:exam_id>', methods=["DELETE"])
+    @requires_auth('delete:exams')
+    def delete_exam_by_id(current_user, exam_id):
+        exam = Exam.query.filter_by(id=exam_id).one_or_none()
+        if exam is None:
+            abort(404)
+        try:
+            exam.delete()
+            return jsonify({'success': True, 'data': f'The exam with the ID {exam_id} has been deleted'}), 200
+        except:
+            abort(500)
+
+    @app.route('/api/v1/exams/<int:exam_id>/sessions')
+    @requires_auth('get:sessions')
+    def get_all_sessions_by_exam(current_user, exam_id):
+        exam = Exam.query.filter_by(id=exam_id).one_or_none()
+        if exam is None:
+            abort(404)
+        data = []
+        for session in exam.sessions:
+            data.append(session.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    '''
+    api to manage session
+    '''
+    @app.route('/api/v1/sessions/<int:session_id>')
+    @requires_auth('get:sessions')
+    def get_session_by_id(current_user, session_id):
+        session = Session.query.filter_by(id=session_id).one_or_none()
+        if session is None:
+            abort(404)
+        return jsonify({'success': True, 'data': session.json()}), 200
+
+    @app.route('/api/v1/sessions/<string:name>')
+    @requires_auth('get:sessions')
+    def get_session_by_name(current_user, name):
+        sessions = Session.query.filter(
+            Session.session_name.ilike(f'%{name}%')).all()
+        data = []
+        for session in sessions:
+            data.append(session.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/sessions', methods=["POST"])
+    @requires_auth('post:sessions')
+    def post_sessions(current_user):
+        data = request.get_json()
+        if not data.get('exam'):
+            abort(400)
+        session = Session.query.filter(
+            Session.exam_id == data["exam"], Session.session_name == get_current_session()).one_or_none()
+        if session:
+            return jsonify({'success': False, 'error': 400, 'message': 'That Session for that particular exam already exist'}), 400
+        try:
+            session = Session(
+                session_name=get_current_session(), exam_id=data["exam"])
+            print(session)
+            session.insert()
+            return jsonify({'success': True, 'data': session.json()}), 201
+        except Exception as e:
+            print(e)
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/v1/sessions/<int:session_id>', methods=["PUT"])
+    @requires_auth('post:sessions')
+    def put_sessions(current_user, session_id):
+        data = request.get_json()
+        session = Session.query.filter(
+            Session.exam_id == data["exam"], Session.session_name == get_current_session()).one_or_none()
+        if session is None:
+            return jsonify({'success': False, 'message': "No ongoing session for this examination, please create one"}), 404
+        if session.id != session_id:
+            return jsonify({'success': False, 'message': "You can't edit a passed or closed session"}), 403
+
+        try:
+            session.nbr_subject_write = data.get('nb_subject')
+            session.update()
+            return jsonify({'success': True, 'data': session.json()}), 200
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/v1/sessions')
+    @requires_auth('get:sessions')
+    def get_all_sessions(current_user):
+        sessions = Session.query.all()
+        data = []
+        for session in sessions:
+            data.append(session.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/sessions/<int:session_id>', methods=["DELETE"])
+    @requires_auth('delete:sessions')
+    def delete_session_by_id(current_user, session_id):
+        session = Session.query.filter_by(id=session_id).one_or_none()
+        if session is None:
+            abort(404)
+        try:
+            session.delete()
+            return jsonify({'success': True, 'data': f'The session with the ID {session_id} has been deleted'}), 200
+        except:
+            abort(500)
 
     '''
     api to manage regions
@@ -444,7 +614,7 @@ def create_app(test_config=None):
             return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 409
         arrondissement = Arrondissement.query.filter_by(
             id=arrondissement_id).one_or_none()
-        if arrondissement:
+        if arrondissement is None:
             return jsonify({'success': False, 'error': 404, 'message': 'That arrondissement doesnt exist'}), 404
         try:
             structure = Structure(data)
@@ -463,11 +633,11 @@ def create_app(test_config=None):
             return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 409
         structure = Structure.query.filter_by(
             id=structure_id).one_or_none()
-        if structure:
+        if structure is None:
             return jsonify({'success': False, 'error': 404, 'message': 'That structure doesnt exist'}), 404
         arrondissement = Arrondissement.query.filter_by(
             id=arrondissement_id).one_or_none()
-        if arrondissement:
+        if arrondissement is None:
             return jsonify({'success': False, 'error': 404, 'message': 'That arrondissement doesnt exist'}), 404
         try:
             structure.sturcture_name = data.get('name')

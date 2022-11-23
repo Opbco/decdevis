@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate, Outlet } from "react-router-dom";
 import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -6,6 +7,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
 import CancelIcon from '@mui/icons-material/Close';
 import { DataGrid, GridRowModes, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
@@ -13,13 +15,14 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { useTranslation } from "react-i18next";
 import useApiRequest from '../redux/api/useApiRequest';
+import { Stack, Typography } from '@mui/material';
 
 function EditToolbar(props) {
-    const { setRegions, setRowModesModel } = props;
+    const { setExams, setRowModesModel } = props;
 
     const handleClick = () => {
         const id = -1;
-        setRegions((oldRows) => [{ id, name: '', isNew: true }, ...oldRows]);
+        setExams((oldRows) => [{ id, name: '', code: 'BEPC', isNew: true }, ...oldRows]);
         setRowModesModel((oldModel) => ({
             ...oldModel,
             [id]: { mode: GridRowModes.Edit, fieldToFocus: 'name' },
@@ -29,7 +32,7 @@ function EditToolbar(props) {
     return (
         <GridToolbarContainer>
             <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
-                Add Region
+                Add Exam
             </Button>
             <GridToolbarExport printOptions={{ disableToolbarButton: true }} />
         </GridToolbarContainer>
@@ -38,16 +41,16 @@ function EditToolbar(props) {
 
 EditToolbar.propTypes = {
     setRowModesModel: PropTypes.func.isRequired,
-    setRegions: PropTypes.func.isRequired,
+    setExams: PropTypes.func.isRequired,
 };
 
-export default function Regions() {
+export default function Exam() {
     const { t } = useTranslation(["common"]);
-    const [regions, setRegions] = React.useState([]);
+    const [exams, setExams] = React.useState([]);
     const [rowModesModel, setRowModesModel] = React.useState({});
     const [snackbar, setSnackbar] = React.useState(null);
     const protectedApi = useApiRequest();
-
+    let navigate = useNavigate();
     const handleCloseSnackbar = () => setSnackbar(null);
 
     const handleRowEditStart = (params, event) => {
@@ -67,13 +70,17 @@ export default function Regions() {
     };
 
     const handleDeleteClick = (id) => () => {
-        protectedApi.delete(`/regions/${id}`).then((res) => {
-            setRegions(regions.filter((row) => row.id !== id));
-            setSnackbar({ children: 'Region successfully deleted', severity: 'success' });
+        protectedApi.delete(`/exams/${id}`).then((res) => {
+            setExams(exams.filter((row) => row.id !== id));
+            setSnackbar({ children: 'Exam successfully deleted', severity: 'success' });
         }).catch(function (error) {
             Swal.fire(t("error"), error.message, "error");
         });
     };
+
+    const goSessions = (row) => () => {
+        navigate(`/exams/session`, { state: { data: row } });
+    }
 
     const handleCancelClick = (id) => () => {
         setRowModesModel({
@@ -81,9 +88,9 @@ export default function Regions() {
             [id]: { mode: GridRowModes.View, ignoreModifications: true },
         });
 
-        const editedRow = regions.find((row) => row.id === id);
+        const editedRow = exams.find((row) => row.id === id);
         if (editedRow.isNew) {
-            setRegions(regions.filter((row) => row.id !== id));
+            setExams(exams.filter((row) => row.id !== id));
         }
     };
 
@@ -92,13 +99,13 @@ export default function Regions() {
             var response;
             // Make the HTTP request to save in the backend
             if (newRow.isNew) {
-                response = await protectedApi.post('/regions', newRow);
+                response = await protectedApi.post('/exams', newRow);
             } else {
                 const updatedRow = { ...newRow, isNew: false };
-                response = await protectedApi.put(`/regions/${updatedRow.id}`, updatedRow)
+                response = await protectedApi.put(`/exams/${updatedRow.id}`, updatedRow)
             }
 
-            setSnackbar({ children: 'Region successfully saved', severity: 'success' });
+            setSnackbar({ children: 'Exam successfully saved', severity: 'success' });
             return response.data.data;
         },
         [],
@@ -111,15 +118,18 @@ export default function Regions() {
     }, []);
 
     const columns = [
-        { field: 'id', headerName: 'ID', type: 'number', width: 180, editable: false },
-        { field: 'name', headerName: 'Name', width: 300, editable: true },
+        { field: 'id', headerName: 'ID', type: 'number', width: 80, editable: false },
+        { field: 'name', headerName: 'Name', flex: 1, minWidth: 500, editable: true },
+        {
+            field: 'code', headerName: 'Type exam', minWidth: 200, editable: true, type: 'singleSelect', valueOptions: ['BEPC', 'CAP STT', 'CAPI', 'CAPIEPM', 'CAPIET', 'CONCOURS']
+        },
         {
             field: 'actions',
             type: 'actions',
             headerName: 'Actions',
             width: 100,
             cellClassName: 'actions',
-            getActions: ({ id }) => {
+            getActions: ({ id, row }) => {
                 const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
                 if (isInEditMode) {
@@ -150,7 +160,15 @@ export default function Regions() {
                     <GridActionsCellItem
                         icon={<DeleteIcon />}
                         label="Delete"
+                        title='Delete'
                         onClick={handleDeleteClick(id)}
+                        color="inherit"
+                    />,
+                    <GridActionsCellItem
+                        icon={<AnalyticsIcon />}
+                        label="Sessions"
+                        title='Sessions'
+                        onClick={goSessions(row)}
                         color="inherit"
                     />,
                 ];
@@ -159,54 +177,62 @@ export default function Regions() {
     ];
 
     React.useEffect(() => {
-        protectedApi.get('/regions').then((res) => {
-            setRegions(res.data.data);
+        protectedApi.get('/exams').then((res) => {
+            setExams(res.data.data);
         }).catch(function (error) {
             Swal.fire(t("error"), error.message, "error");
         });
     }, [])
 
     return (
-        <Box
-            sx={{
-                height: 600,
-                width: '94%',
-                margin: "2em auto",
-                '& .actions': {
-                    color: 'text.secondary',
-                },
-                '& .textPrimary': {
-                    color: 'text.primary',
-                },
-            }}
-        >
-            <DataGrid
-                rows={regions}
-                columns={columns}
-                editMode="row"
-                rowModesModel={rowModesModel}
-                onRowEditStart={handleRowEditStart}
-                onRowEditStop={handleRowEditStop}
-                processRowUpdate={processRowUpdate}
-                onProcessRowUpdateError={handleProcessRowUpdateError}
-                components={{
-                    Toolbar: EditToolbar,
-                }}
-                componentsProps={{
-                    toolbar: { setRegions, setRowModesModel },
-                }}
-                experimentalFeatures={{ newEditingApi: true }}
-            />
-            {!!snackbar && (
-                <Snackbar
-                    open
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    onClose={handleCloseSnackbar}
-                    autoHideDuration={6000}
+        <Box>
+            <Box sx={{ margin: 2 }}>
+                <Typography variant="caption">Gestion des différents type d'examens</Typography>
+            </Box>
+            <Stack direction="column">
+                <Box
+                    sx={{
+                        height: 350,
+                        width: "96%",
+                        margin: "2em auto",
+                        '& .actions': {
+                            color: 'text.primary',
+                        },
+                        '& .textPrimary': {
+                            color: 'text.primary',
+                        },
+                    }}
                 >
-                    <Alert {...snackbar} onClose={handleCloseSnackbar} />
-                </Snackbar>
-            )}
+                    <DataGrid
+                        rows={exams}
+                        columns={columns}
+                        editMode="row"
+                        rowModesModel={rowModesModel}
+                        onRowEditStart={handleRowEditStart}
+                        onRowEditStop={handleRowEditStop}
+                        processRowUpdate={processRowUpdate}
+                        onProcessRowUpdateError={handleProcessRowUpdateError}
+                        components={{
+                            Toolbar: EditToolbar,
+                        }}
+                        componentsProps={{
+                            toolbar: { setExams, setRowModesModel },
+                        }}
+                        experimentalFeatures={{ newEditingApi: true }}
+                    />
+                    {!!snackbar && (
+                        <Snackbar
+                            open
+                            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                            onClose={handleCloseSnackbar}
+                            autoHideDuration={6000}
+                        >
+                            <Alert {...snackbar} onClose={handleCloseSnackbar} />
+                        </Snackbar>
+                    )}
+                </Box>
+                <Outlet />
+            </Stack>
         </Box>
     );
 }

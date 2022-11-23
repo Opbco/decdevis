@@ -9,6 +9,23 @@
 *::after {
   margin: 0;
   box-sizing: border-box;
+  scrollbar-color: var(--secondary-clr);
+  scrollbar-width: thin;
+  scrollbar-track-color: var(--main-clr);
+}
+
+*:-webkit-scrollbar-track {
+  box-shadow: var(--scroll-boxShadow);
+  background-color: var(--secondary-clr);
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  background-color: var(--secondary-clr);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--main-clr);
 }
 
 a {
@@ -24,20 +41,4 @@ html:focus-within {
 body {
   min-height: 100vh;
   text-rendering: optimizeSpeed;
-  scrollbar-color: var(--secondary-clr);
-  scrollbar-width: thin;
-  scrollbar-track-color: var(--main-clr);
-}
-body::-webkit-scrollbar-track {
-  box-shadow: var(--scroll-boxShadow);
-  background-color: var(--secondary-clr);
-}
-
-body::-webkit-scrollbar {
-  width: 6px;
-  background-color: var(--secondary-clr);
-}
-
-body::-webkit-scrollbar-thumb {
-  background-color: var(--main-clr);
 }

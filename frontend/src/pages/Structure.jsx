@@ -1,19 +1,16 @@
 import * as React from 'react';
-import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Close';
-import { DataGrid, GridRowModes, GridActionsCellItem, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridToolbar } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { useTranslation } from "react-i18next";
-import { Typography } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
 import useApiRequest from '../redux/api/useApiRequest';
+import StructureForm from '../components/StructureForm';
 
 
 function renderObject(params) {
@@ -23,10 +20,13 @@ function renderObject(params) {
 export default function Structure() {
     const { t } = useTranslation(["common"]);
     const [structures, setStructures] = React.useState([]);
+    const [current_structure, setStructure] = React.useState(null);
     const [snackbar, setSnackbar] = React.useState(null);
+    const [change, setChange] = React.useState(0);
     const [loading, setLoading] = React.useState(true);
     const protectedApi = useApiRequest();
     const handleCloseSnackbar = () => setSnackbar(null);
+    const [open, setOpen] = React.useState(false);
 
 
 
@@ -39,48 +39,59 @@ export default function Structure() {
         });
     };
 
+    const handleEditStructure = (row) => () => {
+        setOpen(true);
+        setStructure(row);
+    }
+
+    const handleNewStructure = () => {
+        setOpen(true);
+        setStructure({ 'id': -1, 'name': "", 'forme': "GENERAL", 'ordre': "PUBLIC", 'language': "FRANCAIS", 'adresse': "", 'contacts': "", 'arrondissement': null });
+    }
+
     const columns = [
-        { field: 'id', headerName: 'ID', type: 'number', width: 100, editable: false },
+        { field: 'id', headerName: 'ID', type: 'number', width: 50, editable: false },
         {
-            field: 'name', headerName: 'Name', width: 300, editable: false
+            field: 'name', headerName: 'Name', flex: 1, minWidth: 200, editable: false
         },
         {
-            field: 'forme', headerName: 'Forme', width: 150, editable: false
+            field: 'forme', headerName: 'Forme', minWidth: 100, type: 'singleSelect', valueOptions: ['GENERAL', 'TECHNIQUE', 'POLYVALENT', 'ENIEG', 'ENIET']
         },
         {
-            field: 'ordre', headerName: 'Ordre', width: 150, editable: false
+            field: 'ordre', headerName: 'Ordre', minWidth: 100, type: 'singleSelect', valueOptions: ['PRIVE CATHOLIQUE', 'PRIVE PROTESTANT', 'PRIVE LAIC', 'PRIVE ISLAMIQUE', 'PUBLIC']
         },
         {
-            field: 'language', headerName: 'Language', width: 100, editable: false
+            field: 'language', headerName: 'Language', minWidth: 100, type: 'singleSelect', valueOptions: ['FRANCAIS', 'ANGLAIS', 'BILINGUE']
         },
         {
-            field: 'contacts', headerName: 'Contacts', width: 150, editable: false
+            field: 'contacts', headerName: 'Contacts', flex: 1, minWidth: 150, editable: false
         },
         {
-            field: 'adresse', headerName: 'Adresse', width: 200, editable: false
+            field: 'adresse', headerName: 'Adresse', flex: 1, minWidth: 200, editable: false
         },
         {
             field: 'arrondissement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Arrondissement', renderCell: renderObject, editable: false
         },
         {
-            field: 'departement', type: 'string', valueGetter: ({ value }) => `${value.departement.name}`, headerName: 'Département', renderCell: renderObject, editable: false
+            field: 'departement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Département', renderCell: renderObject, editable: false
         },
         {
-            field: 'region', type: 'string', valueGetter: ({ value }) => `${value.region.name}`, headerName: 'Région', renderCell: renderObject, width: 200, editable: false
+            field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Région', renderCell: renderObject, editable: false
         },
         {
             field: 'actions',
             type: 'actions',
             headerName: 'Actions',
-            width: 100,
+            minWidth: 80,
             cellClassName: 'actions',
-            getActions: ({ id }) => {
+            getActions: ({ id, row }) => {
                 return [
                     <GridActionsCellItem
                         icon={<EditIcon />}
                         label="Edit"
                         className="textPrimary"
                         color="inherit"
+                        onClick={handleEditStructure(row)}
                     />,
                     <GridActionsCellItem
                         icon={<DeleteIcon />}
@@ -94,13 +105,14 @@ export default function Structure() {
     ];
 
     React.useEffect(() => {
+        setLoading(true);
         protectedApi.get('/structures').then((res) => {
             setStructures(res.data.data);
             setLoading(false);
         }).catch(function (error) {
             Swal.fire(t("error"), error.message, "error");
         });
-    }, [])
+    }, [change])
 
     return (
         <Box
@@ -116,16 +128,27 @@ export default function Structure() {
                 },
             }}
         >
+            <Stack sx={{ my: 1 }} direction="row" justifyContent="flex-start"><Button onClick={handleNewStructure} variant="contained">Add Structure</Button></Stack>
             <DataGrid
                 rows={structures}
                 columns={columns}
                 loading={loading}
                 components={{ Toolbar: GridToolbar }}
+                componentsProps={{ toolbar: { printOptions: { disableToolbarButton: true } } }}
+                initialState={{ pinnedColumns: { left: ['name'], right: ['actions'] } }}
+            />
+            <StructureForm
+                setSnackbar={setSnackbar}
+                open={open}
+                setOpen={setOpen}
+                data={current_structure}
+                setData={setStructure}
+                change={setChange}
             />
             {!!snackbar && (
                 <Snackbar
                     open
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
                     onClose={handleCloseSnackbar}
                     autoHideDuration={6000}
                 >

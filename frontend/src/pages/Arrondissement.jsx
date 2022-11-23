@@ -155,7 +155,9 @@ export default function Arrondissement() {
     );
 
     const handleProcessRowUpdateError = React.useCallback((error) => {
-        setSnackbar({ children: error.message, severity: 'error' });
+        const { id } = JSON.parse(error.config.data);
+        setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+        setSnackbar({ children: error.response.data.message, severity: 'error' });
     }, []);
 
 

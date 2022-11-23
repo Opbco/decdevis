@@ -9,6 +9,11 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import MailIcon from "@mui/icons-material/Mail";
+import PersonPinCircleIcon from "@mui/icons-material/PersonPinCircle";
+import ExploreIcon from "@mui/icons-material/Explore";
+import AssistantDirectionIcon from "@mui/icons-material/AssistantDirection";
+import LocationCityIcon from "@mui/icons-material/LocationCity";
+import NoteAltIcon from "@mui/icons-material/NoteAlt";
 
 const drawerWidth = 300;
 
@@ -43,7 +48,7 @@ export default function Drawer({ open }) {
         <ListItem disablePadding>
           <ListItemButton>
             <ListItemIcon>
-              <InboxIcon color="secondary" />
+              <PersonPinCircleIcon color="secondary" />
             </ListItemIcon>
             <Link to="/regions">
               <ListItemText primary="Régions" />
@@ -53,7 +58,7 @@ export default function Drawer({ open }) {
         <ListItem disablePadding>
           <ListItemButton>
             <ListItemIcon>
-              <InboxIcon color="secondary" />
+              <ExploreIcon color="secondary" />
             </ListItemIcon>
             <Link to="/departements">
               <ListItemText primary="Départements" />
@@ -63,7 +68,7 @@ export default function Drawer({ open }) {
         <ListItem disablePadding>
           <ListItemButton>
             <ListItemIcon>
-              <InboxIcon color="secondary" />
+              <AssistantDirectionIcon color="secondary" />
             </ListItemIcon>
             <Link to="/arrondissements">
               <ListItemText primary="Arrondissements" />
@@ -73,7 +78,7 @@ export default function Drawer({ open }) {
         <ListItem disablePadding>
           <ListItemButton>
             <ListItemIcon>
-              <InboxIcon color="secondary" />
+              <LocationCityIcon color="secondary" />
             </ListItemIcon>
             <Link to="/structures">
               <ListItemText primary="Structures" />
@@ -83,20 +88,16 @@ export default function Drawer({ open }) {
       </List>
       <Divider />
       <List>
-        {["All mail", "Trash", "Spam"].map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton>
-              <ListItemIcon>
-                {index % 2 === 0 ? (
-                  <InboxIcon color="secondary" />
-                ) : (
-                  <MailIcon color="secondary" />
-                )}
-              </ListItemIcon>
-              <ListItemText primary={text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        <ListItem disablePadding>
+          <ListItemButton>
+            <ListItemIcon>
+              <NoteAltIcon color="secondary" />
+            </ListItemIcon>
+            <Link to="/exams">
+              <ListItemText primary="Examens" />
+            </Link>
+          </ListItemButton>
+        </ListItem>
       </List>
     </Wrapper>
   );

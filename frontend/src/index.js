@@ -23,6 +23,8 @@ import Regions from "./pages/Regions";
 import Departement from "./pages/Departement";
 import Arrondissement from "./pages/Arrondissement";
 import Structure from "./pages/Structure";
+import Exam from "./pages/Exam";
+import Session from "./pages/Session";
 
 const theme = createTheme({
   palette: {
@@ -77,6 +79,9 @@ root.render(
                   <Route path="/departements" element={<Departement />} />
                   <Route path="/arrondissements" element={<Arrondissement />} />
                   <Route path="/structures" element={<Structure />} />
+                  <Route path="/exams" element={<Exam />}>
+                    <Route path="/exams/session" element={<Session />} />
+                  </Route>
                 </Route>
                 <Route
                   path="login"
