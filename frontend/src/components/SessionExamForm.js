@@ -66,7 +66,7 @@ export default function SessionExamForm({
       .catch(function (error) {
         setSnackbar({
           children: error.response.data.message,
-          severity: "success",
+          severity: "error",
         });
       });
   };
@@ -575,6 +575,135 @@ export default function SessionExamForm({
               variant="standard"
             />
           </FieldSet>
+          <FieldSet title="Vaccation Jury Harmonisation des corrigés">
+            <TextField
+              autoFocus
+              id="nbr_vaccation_membre_harmo"
+              name="nbr_vaccation_membre_harmo"
+              label="Nombre de vaccation par membre"
+              type="number"
+              value={data?.nbr_vaccation_membre_harmo}
+              onChange={handleDataChange}
+              fullWidth
+              variant="standard"
+            />
+            <TextField
+              id="nbr_membre_jury_harmo"
+              name="nbr_membre_jury_harmo"
+              label="Nombre de membres par jury"
+              type="number"
+              value={data?.nbr_membre_jury_harmo}
+              onChange={handleDataChange}
+              fullWidth
+              variant="standard"
+            />
+            <TextField
+              id="nbr_vaccation_responsable_harmo"
+              name="nbr_vaccation_responsable_harmo"
+              label="Nombre de vaccation par responsable"
+              type="number"
+              value={data?.nbr_vaccation_responsable_harmo}
+              onChange={handleDataChange}
+              fullWidth
+              variant="standard"
+            />
+            <TextField
+              id="taux_vaccation_harmo"
+              name="taux_vaccation_harmo"
+              label="Montant d'une vaccation pour membre jury harmonisation"
+              type="number"
+              value={data?.taux_vaccation_harmo}
+              onChange={handleDataChange}
+              fullWidth
+              variant="standard"
+            />
+            <TextField
+              id="taux_vaccation_harmo"
+              name="taux_vaccation_harmo"
+              label="Montant d'une vaccation pour membre jury harmonisation"
+              type="number"
+              value={data?.taux_vaccation_harmo}
+              onChange={handleDataChange}
+              fullWidth
+              variant="standard"
+            />
+          </FieldSet>
+          {Boolean(
+            data?.exam?.code === "CAP STT" || data?.exam?.code === "CAPI"
+          ) && (
+            <FieldSet title="Pratique, Main d'oeuvre et Atelier">
+              <TextField
+                id="taux_correction_cgao_gso"
+                name="taux_correction_cgao_gso"
+                label="Montant correction CGAO/GSO"
+                type="number"
+                value={data?.taux_correction_cgao_gso}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+              <TextField
+                id="indemnite_chef_atelier_pratique"
+                name="indemnite_chef_atelier_pratique"
+                label="Indemnité chef d'atelier pratique"
+                type="number"
+                value={data?.indemnite_chef_atelier_pratique}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+              <TextField
+                id="taux_preparation_atelier_candidat"
+                name="taux_preparation_atelier_candidat"
+                label="Montant préparation atelier par candidat"
+                type="number"
+                value={data?.taux_preparation_atelier_candidat}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+              <TextField
+                id="taux_matiere_oeuvre_esf_candidat"
+                name="taux_matiere_oeuvre_esf_candidat"
+                label="Montant matière d'oeuvre ESF par candidat"
+                type="number"
+                value={data?.taux_matiere_oeuvre_esf_candidat}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+              <TextField
+                id="taux_matiere_oeuvre_stt_candidat"
+                name="taux_matiere_oeuvre_stt_candidat"
+                label="Montant matière d'oeuvre STT par candidat"
+                type="number"
+                value={data?.taux_matiere_oeuvre_stt_candidat}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+              <TextField
+                id="taux_vaccation_examinateur_pratique"
+                name="taux_vaccation_examinateur_pratique"
+                label="Montant vaccation examinateur pratique"
+                type="number"
+                value={data?.taux_vaccation_examinateur_pratique}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+              <TextField
+                id="nbr_examinateur_atelier_pratique"
+                name="nbr_examinateur_atelier_pratique"
+                label="Nombre d'examinateur par atelier pratique"
+                type="number"
+                value={data?.nbr_examinateur_atelier_pratique}
+                onChange={handleDataChange}
+                fullWidth
+                variant="standard"
+              />
+            </FieldSet>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>

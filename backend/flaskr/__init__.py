@@ -5,7 +5,7 @@ from flask_migrate import Migrate
 import jwt
 from dotenv import find_dotenv, load_dotenv
 from auth.auth import AuthError, requires_auth
-from models.models import Arrondissement, Exam, Session, Departement, Role, Structure, setup_db, db, User, Region
+from models.models import Arrondissement, Exam, Session, SessionCentre, Departement, Role, Structure, setup_db, db, User, Region
 from .validate import get_current_session, validate_structure, validate_username_and_password, validate_user
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
@@ -276,8 +276,7 @@ def create_app(test_config=None):
             return jsonify({'success': False, 'message': "You can't edit a passed or closed session"}), 403
 
         try:
-            session.nbr_subject_write = data.get('nb_subject')
-            session.update()
+            session.edit(data)
             return jsonify({'success': True, 'data': session.json()}), 200
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
@@ -291,6 +290,17 @@ def create_app(test_config=None):
             data.append(session.json())
         return jsonify({'success': True, 'data': data}), 200
 
+    @app.route('/api/v1/sessions/<int:session_id>/sessioncentres')
+    @requires_auth('get:sessioncentres')
+    def get_all_session_centres(current_user, session_id):
+        session = Session.query.filter(Session.id == session_id).one_or_none()
+        if session is None:
+            abort(404)
+        data = []
+        for centre in session.sessioncentres:
+            data.append(centre.json())
+        return jsonify({'success': True, 'data': data}), 200
+
     @app.route('/api/v1/sessions/<int:session_id>', methods=["DELETE"])
     @requires_auth('delete:sessions')
     def delete_session_by_id(current_user, session_id):
@@ -300,6 +310,77 @@ def create_app(test_config=None):
         try:
             session.delete()
             return jsonify({'success': True, 'data': f'The session with the ID {session_id} has been deleted'}), 200
+        except:
+            abort(500)
+
+    '''
+    api to manage centre
+    '''
+    @app.route('/api/v1/sessioncentres/<int:sessioncentre_id>')
+    @requires_auth('get:sessioncentres')
+    def get_sessioncentres_by_id(current_user, sessioncentre_id):
+        sessioncentre = SessionCentre.query.filter_by(
+            id=sessioncentre_id).one_or_none()
+        if sessioncentre is None:
+            abort(404)
+        return jsonify({'success': True, 'data': sessioncentre.json()}), 200
+
+    @app.route('/api/v1/sessioncentres', methods=["POST"])
+    @requires_auth('post:sessioncentres')
+    def post_sessioncentres(current_user):
+        data = request.get_json()
+        is_validated = validate_structure(**data)
+        if is_validated is not True:
+            return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 409
+
+        session = Session.query.filter(
+            Session.id == data["session"]).one_or_none()
+        structure = Structure.query.filter(
+            Structure.id == data["structure"]).one_or_none()
+        if session is None or structure is None:
+            abort(404)
+        try:
+            centre = SessionCentre(session_id=data["session"], structure_id=data["structure"], form_centre=data["form"],
+                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"])
+            centre.insert()
+            return jsonify({'success': True, 'data': centre.json()}), 201
+        except Exception as e:
+            print(e)
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/v1/sessioncentres/<int:sessioncentre_id>', methods=["PUT"])
+    @requires_auth('post:sessioncentres')
+    def put_sessioncentres(current_user, sessioncentre_id):
+        data = request.get_json()
+        centre = SessionCentre.query.filter(
+            SessionCentre.id == sessioncentre_id).one_or_none()
+        if centre is None:
+            abort(404)
+        try:
+            centre.update(data)
+            return jsonify({'success': True, 'data': centre.json()}), 200
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    @app.route('/api/v1/sessioncentres')
+    @requires_auth('get:sessioncentres')
+    def get_all_sessioncentres(current_user):
+        centres = Session.query.all()
+        data = []
+        for centre in centres:
+            data.append(centre.json())
+        return jsonify({'success': True, 'data': data}), 200
+
+    @app.route('/api/v1/sessioncentres/<int:sessioncentre_id>', methods=["DELETE"])
+    @requires_auth('delete:sessioncentres')
+    def delete_sessioncentres_by_id(current_user, sessioncentre_id):
+        centre = SessionCentre.query.filter_by(
+            id=sessioncentre_id).one_or_none()
+        if centre is None:
+            abort(404)
+        try:
+            centre.delete()
+            return jsonify({'success': True, 'data': f'The centre with the ID {sessioncentre_id} has been deleted'}), 200
         except:
             abort(500)
 

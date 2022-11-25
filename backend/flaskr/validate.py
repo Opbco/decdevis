@@ -112,3 +112,25 @@ def validate_structure(**args):
             'name': 'Name must be between 2 and 30 words'
         }
     return True
+
+
+def validate_centre(**args):
+    """Centre Validator"""
+    if not args.get('session') or not args.get('structure') or not args.get('form') or not args.get('type') or not args.get('for_disabled') or not args.get('for_oral'):
+        return {
+            'session': 'session of examination is required',
+            'structure': 'the structure hosting the examination is required',
+            'form': 'the form of the center is required',
+            'type': 'the Type of the center is required',
+            'for_disabled': 'you have to indicate if the center will be used for disabled candidate',
+            'for_oral': 'you have to indicate if the center will be used for ORAL'
+        }
+    if not isinstance(args.get('session'), int) or \
+            not isinstance(args.get('structure'), int) or not isinstance(args.get('for_disabled'), bool) or not isinstance(args.get('for_oral'), bool):
+        return {
+            'session': 'session must be an integer',
+            'structure': 'structure must be an integer',
+            'for_disabled': 'for_disabled must be a boolean',
+            'for_oral': 'for_oral must be a boolean'
+        }
+    return True

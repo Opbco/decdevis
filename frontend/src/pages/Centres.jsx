@@ -5,9 +5,7 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Close';
-import { DataGrid, GridRowModes, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
@@ -15,25 +13,32 @@ import { useTranslation } from "react-i18next";
 import useApiRequest from '../redux/api/useApiRequest';
 import { useLocation } from "react-router-dom";
 import { Typography } from '@mui/material';
-import SessionExamForm from '../components/SessionExamForm';
+import CentreForm from '../components/CentreForm';
 
 function EditToolbar(props) {
-    const { setSessions, protectedApi, exam } = props;
+    const { setOpen, setCentre, session } = props;
 
     const handleClick = () => {
-        const data = { exam: exam.id };
-        protectedApi.post(`/sessions`, data).then((res) => {
-            setSessions((oldRows) => [res.data.data, ...oldRows]);
-            Swal.fire("Operation successfull", `New Session for ${exam.name} successfully created`, "success");
-        }).catch(function (error) {
-            Swal.fire("Error", error.message, "error");
-        });
+        setOpen(true)
+        setCentre({
+            id: -1,
+            'session': session,
+            'structure': null,
+            'region': null,
+            'departement': null,
+            'arrondissement': null,
+            'centre': null,
+            'form': 'C',
+            'type': 'E',
+            'for_disabled': false,
+            'for_oral': false,
+        })
     };
 
     return (
         <GridToolbarContainer>
             <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
-                Add Session
+                Add Centre | Sous-centre
             </Button>
             <GridToolbarExport printOptions={{ disableToolbarButton: true }} />
         </GridToolbarContainer>
@@ -41,28 +46,32 @@ function EditToolbar(props) {
 }
 
 EditToolbar.propTypes = {
-    setSessions: PropTypes.func.isRequired,
-    protectedApi: PropTypes.func.isRequired,
-    exam: PropTypes.object.isRequired,
+    setCentre: PropTypes.func.isRequired,
+    setOpen: PropTypes.func.isRequired,
+    session: PropTypes.object.isRequired,
 };
 
-export default function Session() {
+function renderObject(params) {
+    return (<Typography component="h5">{params.value}</Typography>);
+}
+
+export default function Centres() {
     const { t } = useTranslation(["common"]);
-    const [sessions, setSessions] = React.useState([]);
+    const [centres, setCentres] = React.useState([]);
     const [snackbar, setSnackbar] = React.useState(null);
     const [open, setOpen] = React.useState(false);
-    const [current_session, setSession] = React.useState(null);
+    const [current_centre, setCentre] = React.useState(null);
     const [change, setChange] = React.useState(0);
     const protectedApi = useApiRequest();
     const location = useLocation();
-    const exam = location.state?.data;
+    const session = location.state?.data;
 
     const handleCloseSnackbar = () => setSnackbar(null);
 
     const handleDeleteClick = (id) => () => {
-        protectedApi.delete(`/sessions/${id}`).then((res) => {
-            setSessions(sessions.filter((row) => row.id !== id));
-            setSnackbar({ children: 'Session successfully deleted', severity: 'success' });
+        protectedApi.delete(`/sessioncentres/${id}`).then((res) => {
+            setCentres(centres.filter((row) => row.id !== id));
+            setSnackbar({ children: 'Centre | Sous-centre successfully deleted', severity: 'success' });
         }).catch(function (error) {
             Swal.fire(t("error"), error.message, "error");
         });
@@ -70,13 +79,27 @@ export default function Session() {
 
     const handleEditClick = (row) => () => {
         setOpen(true);
-        setSession(row);
+        setCentre(row);
     }
 
     const columns = [
-        { field: 'id', headerName: 'ID', type: 'number', width: 80, editable: false },
-        { field: 'name', headerName: 'Name', width: 100, editable: false },
-        { field: 'nbr_jour_examen_write', headerName: 'Nombre de jours', type: 'number', width: 150, editable: true },
+        { field: 'id', headerName: 'ID', type: 'number', width: 80 },
+        {
+            field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Région', renderCell: renderObject
+        },
+        {
+            field: 'departement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Département', renderCell: renderObject
+        },
+        {
+            field: 'arrondissement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Arrondissement', renderCell: renderObject
+        },
+        { field: 'centre', headerName: 'Examen', valueGetter: ({ value }) => `${value.structure.name}`, width: 100 },
+        { field: 'session', headerName: 'Examen', valueGetter: ({ value }) => `${value.name}`, width: 100 },
+        { field: 'structure', headerName: 'Etablissement', valueGetter: ({ value }) => `${value.structure.name}`, width: 150 },
+        { field: 'form', headerName: 'Forme', type: 'singleSelect', valueOptions: ['C', 'CA', 'SC', 'SA'], width: 100 },
+        { field: 'type', headerName: 'Type', type: 'singleSelect', valueOptions: ['E', 'EC', 'ECD', 'EP', 'EPC', 'EPCD'], width: 100 },
+        { field: 'for_disabled', headerName: 'Handicapés', type: 'bool', width: 80 },
+        { field: 'for_oral', headerName: 'Centre Oral', type: 'bool', width: 80 },
         {
             field: 'actions',
             type: 'actions',
@@ -105,12 +128,12 @@ export default function Session() {
     ];
 
     React.useEffect(() => {
-        protectedApi.get(`/exams/${exam.id}/sessions`).then((res) => {
-            setSessions(res.data.data);
+        protectedApi.get(`/sessions/${session.id}/sessioncentres`).then((res) => {
+            setCentres(res.data.data);
         }).catch(function (error) {
             Swal.fire(t("error"), error.message, "error");
         });
-    }, [exam, change]);
+    }, [session, change]);
 
     return (
         <Box
@@ -127,24 +150,24 @@ export default function Session() {
             }}
         >
             <Box sx={{ margin: 1 }}>
-                <Typography variant="caption">{exam.name}</Typography>
+                <Typography variant="caption">{`${session.exam.name} (${session.name})`}</Typography>
             </Box>
             <DataGrid
-                rows={sessions}
+                rows={centres}
                 columns={columns}
                 components={{
                     Toolbar: EditToolbar,
                 }}
                 componentsProps={{
-                    toolbar: { setSessions, protectedApi, exam },
+                    toolbar: { setCentre, setOpen, session },
                 }}
             />
-            <SessionExamForm
+            <CentreForm
                 setSnackbar={setSnackbar}
                 open={open}
                 setOpen={setOpen}
-                data={current_session}
-                setData={setSession}
+                data={current_centre}
+                setData={setCentre}
                 change={setChange}
             />
             {!!snackbar && (

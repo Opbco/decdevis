@@ -423,6 +423,75 @@ class Session(db.Model):
     sessioncentres = db.relationship(
         'SessionCentre', backref='session', lazy=True)
 
+    def edit(self, data):
+        self.indemnite_chef_centre_write = data["indemnite_chef_centre_write"]
+        self.indemnite_chef_scentre_write = data["indemnite_chef_scentre_write"]
+        self.indemnite_chef_centrea_write = data["indemnite_chef_centrea_write"]
+        self.indemnite_chef_scentrea_write = data["indemnite_chef_scentrea_write"]
+        self.nbr_candidat_salle_write = data["nbr_candidat_salle_write"]
+        self.nbr_surveillant_salle_write = data["nbr_surveillant_salle_write"]
+        self.nbr_salle_surveillants_write = data["nbr_salle_surveillants_write"]
+        self.nbr_jour_examen_write = data["nbr_jour_examen_write"]
+        self.nbr_vaccation_jour_write = data["nbr_vaccation_jour_write"]
+        self.taux_vaccation_surveillant_write = data["taux_vaccation_surveillant_write"]
+        self.nbr_surveillant_salle_hand_write = data["nbr_surveillant_salle_hand_write"]
+        self.nbr_vaccation_transcript_hand_write = data["nbr_vaccation_transcript_hand_write"]
+        self.nbr_vaccation_deroulement_hand_write = data["nbr_vaccation_deroulement_hand_write"]
+        self.nbr_candidat_salle_hand_write = data["nbr_candidat_salle_hand_write"]
+        self.indemnite_chef_atelier_hand_write = data["indemnite_chef_atelier_hand_write"]
+        self.taux_vaccation_surveillant_hand_write = data["taux_vaccation_surveillant_hand_write"]
+        self.nbr_candidat_atelier_oral = data["nbr_candidat_atelier_oral"]
+        self.nbr_matiere_atelier_oral = data["nbr_matiere_atelier_oral"]
+        self.nbr_membre_atelier_oral = data["nbr_membre_atelier_oral"]
+        self.nbr_vaccation_membre_oral = data["nbr_vaccation_membre_oral"]
+        self.taux_vaccation_surveillant_oral = data["taux_vaccation_surveillant_oral"]
+        self.indemnite_chef_salle_oral = data["indemnite_chef_salle_oral"]
+        self.nbr_vaccation_jour_sec_write = data["nbr_vaccation_jour_sec_write"]
+        self.nbr_vaccation_sec_correct = data["nbr_vaccation_sec_correct"]
+        self.nbr_vaccation_sec_delib = data["nbr_vaccation_sec_delib"]
+        self.taux_vaccation_sec = data["taux_vaccation_sec"]
+        self.indemnite_chef_sec = data["indemnite_chef_sec"]
+        self.indemnite_chef_sec_all = data["indemnite_chef_sec_all"]
+        self.nbr_jour_examen_pratique = data["nbr_jour_examen_pratique"]
+        self.taux_vaccation_cm = data["taux_vaccation_cm"]
+        self.indemnite_cm = data["indemnite_cm"]
+        self.nbr_matiere_correct = data["nbr_matiere_correct"]
+        self.taux_copie_correct = data["taux_copie_correct"]
+        self.indemnite_chef_salle_correct = data["indemnite_chef_salle_correct"]
+        self.nbr_candidat_jury_delib = data["nbr_candidat_jury_delib"]
+        self.nbr_membre_lecteur_delib = data["nbr_membre_lecteur_delib"]
+        self.nbr_membre_teneur_delib = data["nbr_membre_teneur_delib"]
+        self.nbr_vaccation_teneur_delib = data["nbr_vaccation_teneur_delib"]
+        self.nbr_vaccation_lecteur_delib = data["nbr_vaccation_lecteur_delib"]
+        self.taux_vaccation_membre_delib = data["taux_vaccation_membre_delib"]
+        self.indemnite_president_jury_delib = data["indemnite_president_jury_delib"]
+        self.indemnite_vpresident_jury_delib = data["indemnite_vpresident_jury_delib"]
+        self.nbr_vaccation_prepa_dispatch = data["nbr_vaccation_prepa_dispatch"]
+        self.nbr_vaccation_awrite_dispatch = data["nbr_vaccation_awrite_dispatch"]
+        self.nbr_vaccation_acorrect_dispatch = data["nbr_vaccation_acorrect_dispatch"]
+        self.nbr_vaccation_adelib_dispatch = data["nbr_vaccation_adelib_dispatch"]
+        self.taux_vaccation_membre_dispatch = data["taux_vaccation_membre_dispatch"]
+        self.indemnite_chef_sec_dispacth = data["indemnite_chef_sec_dispacth"]
+        self.nbr_vaccation_responsable_harmo = data["nbr_vaccation_responsable_harmo"]
+        self.nbr_vaccation_membre_harmo = data["nbr_vaccation_membre_harmo"]
+        self.nbr_membre_jury_harmo = data["nbr_membre_jury_harmo"]
+        self.taux_vaccation_harmo = data["taux_vaccation_harmo"]
+        self.taux_correction_cgao_gso = data["taux_correction_cgao_gso"]
+        self.indemnite_chef_atelier_pratique = data["indemnite_chef_atelier_pratique"]
+        self.taux_preparation_atelier_candidat = data["taux_preparation_atelier_candidat"]
+        self.taux_matiere_oeuvre_esf_candidat = data["taux_matiere_oeuvre_esf_candidat"]
+        self.taux_matiere_oeuvre_stt_candidat = data["taux_matiere_oeuvre_stt_candidat"]
+        self.taux_vaccation_examinateur_pratique = data["taux_vaccation_examinateur_pratique"]
+        self.nbr_examinateur_atelier_pratique = data["nbr_examinateur_atelier_pratique"]
+        db.session.commit()
+
+    def ShortJson(self):
+        return {
+            'id': self.id,
+            'name': self.session_name,
+            "exam": self.exam.json(),
+        }
+
     def json(self):
         return {
             'id': self.id,
@@ -484,8 +553,8 @@ class Session(db.Model):
             "taux_correction_cgao_gso": self.taux_correction_cgao_gso,
             "indemnite_chef_atelier_pratique": self.indemnite_chef_atelier_pratique,
             "taux_preparation_atelier_candidat": self.taux_preparation_atelier_candidat,
-            "taux_matiere_oeuvre_esf_candidat" : self.taux_matiere_oeuvre_esf_candidat,
-            "taux_matiere_oeuvre_stt_candidat" : self.taux_matiere_oeuvre_stt_candidat,
+            "taux_matiere_oeuvre_esf_candidat": self.taux_matiere_oeuvre_esf_candidat,
+            "taux_matiere_oeuvre_stt_candidat": self.taux_matiere_oeuvre_stt_candidat,
             "taux_vaccation_examinateur_pratique": self.taux_vaccation_examinateur_pratique,
             "nbr_examinateur_atelier_pratique": self.nbr_examinateur_atelier_pratique
         }
@@ -496,9 +565,6 @@ class Session(db.Model):
 
     def delete(self):
         db.session.delete(self)
-        db.session.commit()
-
-    def update(self):
         db.session.commit()
 
     @classmethod
@@ -512,10 +578,11 @@ class Session(db.Model):
 
 class SessionCentre(db.Model):
     __tablename__ = 'sessioncentres'
+    id = Column(Integer, primary_key=True)
     session_id = Column(Integer, db.ForeignKey(
-        'sessions.id', ondelete="CASCADE"), primary_key=True)
+        'sessions.id', ondelete="CASCADE"), nullable=False)
     structure_id = Column(Integer, db.ForeignKey(
-        'structures.id', ondelete="CASCADE"), primary_key=True)
+        'structures.id', ondelete="CASCADE"), nullable=False)
     form_centre = Column(db.Enum('C', 'CA', 'SC', 'SA', name='formsCentre'),
                          nullable=False, server_default='SC')
     type_centre = Column(db.Enum('E', 'EC', 'ECD', 'EP', 'EPC', 'EPCD', name='typesCentre'),
@@ -523,7 +590,7 @@ class SessionCentre(db.Model):
     isForDisabled = Column(Boolean, nullable=False, server_default='False')
     isForOral = Column(Boolean, nullable=False, server_default='False')
     nbr_candidat_ecrit = Column(Integer, db.CheckConstraint(
-        'nbr_candidat_ecrit > 0'), nullable=False, server_default='10')
+        'nbr_candidat_ecrit > 0'), nullable=True, server_default='10')
     nbr_candidat_handicap = Column(Integer, db.CheckConstraint(
         'nbr_candidat_handicap > 0'), nullable=True, server_default='0')
     nbr_copies_marked = Column(Integer, db.CheckConstraint(
@@ -538,12 +605,39 @@ class SessionCentre(db.Model):
         'nbr_candidat_epreuve_facultive > 0'), nullable=True, server_default='0')
     nbr_candidat_inapte = Column(Integer, db.CheckConstraint(
         'nbr_candidat_inapte > 0'), nullable=True, server_default='0')
+    centre_id = Column(Integer, db.ForeignKey(
+        'sessioncentres.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=True, index=True)
+    sub_centre = db.relationship(
+        "SessionCentre", backref=db.backref("centre", remote_side=[id]))
+
+    def Shortjson(self):
+        return {
+            'id': self.id,
+            'session': self.session.ShortJson(),
+            'structure': self.structure.json(),
+            'form': self.form_centre,
+            'type': self.type_centre,
+            'for_disabled': self.isForDisabled,
+            'for_oral': self.isForOral,
+            'nbr_candidat_ecrit': self.nbr_candidat_ecrit,
+            'nbr_candidat_handicap': self.nbr_candidat_handicap,
+            'nbr_copies_marked': self.nbr_copies_marked,
+            'nbr_candidat_marked': self.nbr_candidat_marked,
+            'nbr_candidat_delib': self.nbr_candidat_delib,
+            'nbr_candidat_oral': self.nbr_candidat_oral,
+            'nbr_candidat_epreuve_facultive': self.nbr_candidat_epreuve_facultive,
+            'nbr_candidat_inapte': self.nbr_candidat_inapte
+        }
 
     def json(self):
         return {
             'id': self.id,
-            'session': self.session.json(),
-            'structure': self.structure.json(),
+            'session': self.session.ShortJson(),
+            'structure': self.structure.shortJson(),
+            'region': self.structure.arrondissement.departement.region.json(),
+            'departement': self.structure.arrondissement.departement.json(),
+            'arrondissement': self.structure.arrondissement.json(),
+            'centre': self.centre.Shortjson() if self.centre_id else self.Shortjson(),
             'form': self.form_centre,
             'type': self.type_centre,
             'for_disabled': self.isForDisabled,
@@ -566,7 +660,19 @@ class SessionCentre(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-    def update(self):
+    def update(self, data):
+        self.form_centre = data['form']
+        self.type_centre = data['type']
+        self.isForDisabled = data['for_disabled']
+        self.isForOral = data['for_oral']
+        self.nbr_candidat_ecrit = data['nbr_candidat_ecrit']
+        self.nbr_candidat_handicap = data['nbr_candidat_handicap']
+        self.nbr_copies_marked = data['nbr_copies_marked']
+        self.nbr_candidat_marked = data['nbr_candidat_marked']
+        self.nbr_candidat_delib = data['nbr_candidat_delib']
+        self.nbr_candidat_oral = data['nbr_candidat_oral']
+        self.nbr_candidat_epreuve_facultive = data['nbr_candidat_epreuve_facultive']
+        self.nbr_candidat_inapte = data['nbr_candidat_inapte']
         db.session.commit()
 
     @classmethod
