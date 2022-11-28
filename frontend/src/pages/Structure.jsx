@@ -31,12 +31,23 @@ export default function Structure() {
 
 
     const handleDeleteClick = (id) => () => {
-        protectedApi.delete(`/structures/${id}`).then((res) => {
-            setStructures(structures.filter((row) => row.id !== id));
-            setSnackbar({ children: 'Structure successfully deleted', severity: 'success' });
-        }).catch(function (error) {
-            Swal.fire(t("error"), error.message, "error");
-        });
+        Swal.fire({
+            title: "Do you really want to delete this School",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: "Delete",
+            confirmButtonColor: "#d33"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                protectedApi.delete(`/structures/${id}`).then((res) => {
+                    setStructures(structures.filter((row) => row.id !== id));
+                    setSnackbar({ children: 'Structure successfully deleted', severity: 'success' });
+                }).catch(function (error) {
+                    Swal.fire(t("error"), error.message, "error");
+                });
+            }
+        })
+
     };
 
     const handleEditStructure = (row) => () => {

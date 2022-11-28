@@ -70,16 +70,27 @@ export default function Exam() {
     };
 
     const handleDeleteClick = (id) => () => {
-        protectedApi.delete(`/exams/${id}`).then((res) => {
-            setExams(exams.filter((row) => row.id !== id));
-            setSnackbar({ children: 'Exam successfully deleted', severity: 'success' });
-        }).catch(function (error) {
-            Swal.fire(t("error"), error.message, "error");
-        });
+        Swal.fire({
+            title: "Do you really want to delete this Examination",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: "Delete",
+            confirmButtonColor: "#d33"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                protectedApi.delete(`/exams/${id}`).then((res) => {
+                    setExams(exams.filter((row) => row.id !== id));
+                    setSnackbar({ children: 'Exam successfully deleted', severity: 'success' });
+                }).catch(function (error) {
+                    Swal.fire(t("error"), error.message, "error");
+                });
+            }
+        })
+
     };
 
     const goSessions = (row) => () => {
-        navigate(`/exams/session`, { state: { data: row } });
+        navigate(`/exams/sessions`, { state: { data: row } });
     }
 
     const handleCancelClick = (id) => () => {

@@ -8,9 +8,39 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import useApiRequest from "../redux/api/useApiRequest";
+import { styled } from "@mui/material/styles";
 import DialogTitle from "@mui/material/DialogTitle";
-import Swal from "sweetalert2";
-import { Autocomplete, TextField } from "@mui/material";
+import {
+  Autocomplete,
+  FormControlLabel,
+  FormLabel,
+  Switch,
+  TextField,
+} from "@mui/material";
+
+const FieldSet = styled("fieldset")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  border: "none",
+  marginBlock: 20,
+  padding: 10,
+  gap: 10,
+  position: "relative",
+  [theme.breakpoints.down("sm")]: {
+    gridTemplateColumns: "1fr",
+  },
+  ["&::before"]: {
+    content: "attr(title)",
+    position: "absolute",
+    top: "-10%",
+    left: 0,
+    right: 0,
+    color: "#1242ff",
+    fontSize: 12,
+    zIndex: 2,
+    textTransform: "uppercase",
+  },
+}));
 
 export default function CentreForm({
   setSnackbar,
@@ -22,9 +52,8 @@ export default function CentreForm({
 }) {
   const [arrondissements, setArrondissements] = React.useState([]);
   const [departments, setDepartments] = React.useState([]);
-  const [examen, setExamen] = React.useState([]);
   const [regions, setRegions] = React.useState([]);
-  const [structure, setStructure] = React.useState([]);
+  const [structures, setStructures] = React.useState([]);
   const [centres, setCentres] = React.useState([]);
   const protectedApi = useApiRequest();
 
@@ -33,35 +62,40 @@ export default function CentreForm({
   };
 
   const handleSubmission = () => {
-    const structure = {
+    const centre = {
       ...data,
-      form: data.forme,
-      arrondissement: data.arrondissement.id,
+      centre: data.centre?.id || null,
+      session: data.session.id,
+      structure: data.structure.id,
+      region: null,
+      departement: null,
+      arrondissement: null
     };
     if (data.id === -1) {
       protectedApi
-        .post(`/structures`, structure)
+        .post(`/sessioncentres`, centre)
         .then((res) => {
           setOpen(false);
           setSnackbar({
-            children: "Structure successfully created",
+            children: "Center successfully created",
             severity: "success",
           });
           change((prev) => prev + 1);
         })
         .catch(function (error) {
+          console.log(error.response.data.error);
           setSnackbar({
             children: error.response.data.message,
-            severity: "success",
+            severity: "error",
           });
         });
     } else {
       protectedApi
-        .put(`/structures/${data.id}`, structure)
+        .put(`/sessioncentres/${data.id}`, centre)
         .then((res) => {
           setOpen(false);
           setSnackbar({
-            children: "Structure successfully updated",
+            children: "Centre successfully updated",
             severity: "success",
           });
           change((prev) => prev + 1);
@@ -69,14 +103,14 @@ export default function CentreForm({
         .catch(function (error) {
           setSnackbar({
             children: error.response.data.message,
-            severity: "success",
+            severity: "error",
           });
         });
     }
   };
 
   const handleDataChange = (e) => {
-    setData((value) => ({ ...value, [e.target.name]: e.target.value }));
+    setData((value) => ({ ...value, [e.target.name]: e.target.type == 'checkbox' ? e.target.checked : e.target.value }));
   };
 
   React.useEffect(() => {
@@ -86,107 +120,115 @@ export default function CentreForm({
         setRegions(res.data.data);
       })
       .catch(function (error) {
-        Swal.fire("error", error.message, "error");
+        setSnackbar({
+          children: error.response.data.message,
+          severity: "error",
+        });
       });
   }, []);
 
   React.useEffect(() => {
-    protectedApi
-      .get("/regions")
-      .then((res) => {
-        setRegions(res.data.data);
-      })
-      .catch(function (error) {
-        Swal.fire("error", error.message, "error");
-      });
-  }, []);
+    if (data?.region) {
+      protectedApi
+        .get(`/regions/${data.region.id}/departements`)
+        .then((res) => {
+          setDepartments(res.data.data);
+        })
+        .catch(function (error) {
+          setSnackbar({
+            children: error.response.data.message,
+            severity: "error",
+          });
+        });
+    }
+  }, [data?.region]);
+
+  React.useEffect(() => {
+    if (data?.departement) {
+      protectedApi
+        .get(`/departements/${data.departement.id}/arrondissements`)
+        .then((res) => {
+          setArrondissements(res.data.data);
+        })
+        .catch(function (error) {
+          setSnackbar({
+            children: error.response.data.message,
+            severity: "error",
+          });
+        });
+    }
+  }, [data?.departement]);
+
+  React.useEffect(() => {
+    if (data?.form !== "C" && data?.departement) {
+      protectedApi
+        .get(
+          `/sessions/${data.session.id}/sessioncentres/${data?.departement.id}`
+        )
+        .then((res) => {
+          setCentres(res.data.data);
+        })
+        .catch(function (error) {
+          setSnackbar({
+            children: error.response.data.message,
+            severity: "error",
+          });
+        });
+    }
+  }, [data?.form, data?.departement]);
+
+  React.useEffect(() => {
+    if (data?.arrondissement) {
+      protectedApi
+        .get(`/arrondissements/${data.arrondissement.id}/structures`)
+        .then((res) => {
+          setStructures(res.data.data);
+        })
+        .catch(function (error) {
+          setSnackbar({
+            children: error.response.data.message,
+            severity: "error",
+          });
+        });
+    }
+  }, [data?.arrondissement]);
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Structure editing form </DialogTitle>
+      <DialogTitle>
+        Création et Modification des Centres | Sous-centres
+      </DialogTitle>
       <DialogContent>
-        <TextField
-          autoFocus
-          margin="normal"
-          id="name"
-          name="name"
-          label="Name of the structure"
-          type="text"
-          value={data?.name}
-          onChange={handleDataChange}
-          fullWidth
-          variant="standard"
+        <Autocomplete
+          sx={{ my: 1 }}
+          value={data?.region}
+          onChange={(event, newValue) => {
+            setData((prev) => ({ ...prev, region: newValue }));
+          }}
+          id="region"
+          options={regions}
+          getOptionLabel={(option) => option.name}
+          renderInput={(params) => <TextField {...params} label="region" />}
         />
-        <TextField
-          margin="normal"
-          id="contacts"
-          name="contacts"
-          label="Contacts"
-          type="text"
-          value={data?.contacts}
-          onChange={handleDataChange}
-          fullWidth
-          variant="standard"
+        <Autocomplete
+          sx={{ my: 1 }}
+          value={data?.departement}
+          onChange={(event, newValue) => {
+            setData((prev) => ({ ...prev, departement: newValue }));
+          }}
+          id="departement"
+          options={departments}
+          getOptionLabel={(option) => option.name}
+          renderInput={(params) => (
+            <TextField {...params} label="departement" />
+          )}
         />
-        <FormControl fullWidth>
-          <InputLabel id="form-select-label">Form</InputLabel>
-          <Select
-            sx={{ my: 1 }}
-            labelId="form-select-label"
-            id="forme"
-            name="forme"
-            value={data?.forme}
-            label="Form"
-            onChange={handleDataChange}
-          >
-            <MenuItem value="GENERAL">GENERAL</MenuItem>
-            <MenuItem value="TECHNIQUE">TECHNIQUE</MenuItem>
-            <MenuItem value="POLYVALENT">POLYVALENT</MenuItem>
-            <MenuItem value="ENIEG">ENIEG</MenuItem>
-            <MenuItem value="ENIET">ENIET</MenuItem>
-          </Select>
-        </FormControl>
-        <FormControl fullWidth>
-          <InputLabel id="ordre-select-label">Ordre</InputLabel>
-          <Select
-            sx={{ my: 1 }}
-            labelId="ordre-select-label"
-            id="ordre"
-            name="ordre"
-            value={data?.ordre}
-            label="Ordre"
-            onChange={handleDataChange}
-          >
-            <MenuItem value="PUBLIC">PUBLIC</MenuItem>
-            <MenuItem value="PRIVE CATHOLIQUE">PRIVE CATHOLIQUE</MenuItem>
-            <MenuItem value="PRIVE PROTESTANT">PRIVE PROTESTANT</MenuItem>
-            <MenuItem value="PRIVE LAIC">PRIVE LAIC</MenuItem>
-            <MenuItem value="PRIVE ISLAMIQUE">PRIVE ISLAMIQUE</MenuItem>
-          </Select>
-        </FormControl>
-        <FormControl fullWidth>
-          <InputLabel id="language-select-label">Language</InputLabel>
-          <Select
-            sx={{ my: 1 }}
-            labelId="language-select-label"
-            id="language"
-            name="language"
-            value={data?.language}
-            label="Language"
-            onChange={handleDataChange}
-          >
-            <MenuItem value="FRANCAIS">FRANCAIS</MenuItem>
-            <MenuItem value="ANGLAIS">ANGLAIS</MenuItem>
-            <MenuItem value="BILINGUE">BILINGUE</MenuItem>
-          </Select>
-        </FormControl>
         <Autocomplete
           sx={{ my: 1 }}
           value={data?.arrondissement}
           onChange={(event, newValue) => {
             setData((prev) => ({ ...prev, arrondissement: newValue }));
           }}
-          groupBy={(option) => option.departement.name}
           id="arrondissement"
           options={arrondissements}
           getOptionLabel={(option) => option.name}
@@ -194,17 +236,171 @@ export default function CentreForm({
             <TextField {...params} label="Arrondissement" />
           )}
         />
-        <TextField
-          margin="normal"
-          id="adresse"
-          name="adresse"
-          label="Adresse de la structure"
-          type="text"
-          value={data?.adresse}
-          onChange={handleDataChange}
-          fullWidth
-          variant="standard"
+        <Autocomplete
+          sx={{ my: 1 }}
+          value={data?.structure}
+          onChange={(event, newValue) => {
+            setData((prev) => ({ ...prev, structure: newValue }));
+          }}
+          id="structure"
+          options={structures}
+          getOptionLabel={(option) => option.name}
+          renderInput={(params) => (
+            <TextField {...params} label="Etablissement" />
+          )}
         />
+        <FormControl fullWidth>
+          <InputLabel id="form-select-label">Form</InputLabel>
+          <Select
+            sx={{ my: 1 }}
+            labelId="form-select-label"
+            id="form"
+            name="form"
+            value={data?.form}
+            label="Forme"
+            onChange={handleDataChange}
+          >
+            <MenuItem value="C">Centre</MenuItem>
+            <MenuItem value="CA">Centre Assistant</MenuItem>
+            <MenuItem value="SC">Sous-Centre</MenuItem>
+            <MenuItem value="SA">Sous-Centre Assistant</MenuItem>
+          </Select>
+        </FormControl>
+        {data?.form !== "C" && (
+          <Autocomplete
+            sx={{ my: 1 }}
+            value={data?.centre}
+            onChange={(event, newValue) => {
+              setData((prev) => ({ ...prev, centre: newValue }));
+            }}
+            id="centre"
+            options={centres}
+            getOptionLabel={(option) => option.structure.name}
+            renderInput={(params) => <TextField {...params} label="Centre" />}
+          />
+        )}
+        <FormControl fullWidth>
+          <InputLabel id="type-select-label">Type</InputLabel>
+          <Select
+            sx={{ my: 1 }}
+            labelId="type-select-label"
+            id="type"
+            name="type"
+            value={data?.type}
+            label="Type"
+            onChange={handleDataChange}
+          >
+            <MenuItem value="E">Ecrit</MenuItem>
+            <MenuItem value="EC">Ecrit & Correction</MenuItem>
+            <MenuItem value="ECD">Ecrit, Correction & Délibération</MenuItem>
+            <MenuItem value="EP">Ecrit & Pratique</MenuItem>
+            <MenuItem value="EPC">Ecrit, Pratique & Correction</MenuItem>
+            <MenuItem value="EPCD">
+              Ecrit, Pratique, Correction & Délibération
+            </MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={data?.for_oral}
+                name="for_oral"
+                onChange={handleDataChange}
+                inputProps={{ "aria-label": "Centre Oral?" }}
+              />
+            }
+            label="Centre Oral ?"
+            labelPlacement="start"
+          />
+        </FormControl>
+        <FormControl>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={data?.for_disabled}
+                name="for_disabled"
+                onChange={handleDataChange}
+                inputProps={{ "aria-label": "Centre pour handicapé?" }}
+              />
+            }
+            label="Centre handicapés ?"
+            labelPlacement="start"
+          />
+        </FormControl>
+        <FieldSet title="Candidates Information">
+          <TextField
+            autoFocus
+            id="nbr_candidat_ecrit"
+            name="nbr_candidat_ecrit"
+            label="Nombre de candidats inscrits"
+            type="number"
+            value={data?.nbr_candidat_ecrit}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_candidat_inapte"
+            name="nbr_candidat_inapte"
+            label="Nombre de candidats inaptes"
+            type="number"
+            value={data?.nbr_candidat_inapte}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_candidat_epreuve_facultive"
+            name="nbr_candidat_epreuve_facultive"
+            label="Nombre de candidats à l'épreuve facultative"
+            type="number"
+            value={data?.nbr_candidat_epreuve_facultive}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_candidat_oral"
+            name="nbr_candidat_oral"
+            label="Nombre de candidats à l'oral"
+            type="number"
+            value={data?.nbr_candidat_oral}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_candidat_marked"
+            name="nbr_candidat_marked"
+            label="Nombre de candidats pour correction"
+            type="number"
+            value={data?.nbr_candidat_marked}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_copies_marked"
+            name="nbr_copies_marked"
+            label="Nombre de copies corrigées"
+            type="number"
+            value={data?.nbr_copies_marked}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_candidat_delib"
+            name="nbr_candidat_delib"
+            label="Nombre de candidats pour délibération"
+            type="number"
+            value={data?.nbr_candidat_delib}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+        </FieldSet>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>

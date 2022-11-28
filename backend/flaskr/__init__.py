@@ -6,7 +6,7 @@ import jwt
 from dotenv import find_dotenv, load_dotenv
 from auth.auth import AuthError, requires_auth
 from models.models import Arrondissement, Exam, Session, SessionCentre, Departement, Role, Structure, setup_db, db, User, Region
-from .validate import get_current_session, validate_structure, validate_username_and_password, validate_user
+from .validate import get_current_session, validate_structure, validate_centre, validate_username_and_password, validate_user
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 from operator import or_
@@ -261,7 +261,6 @@ def create_app(test_config=None):
             session.insert()
             return jsonify({'success': True, 'data': session.json()}), 201
         except Exception as e:
-            print(e)
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/v1/sessions/<int:session_id>', methods=["PUT"])
@@ -301,6 +300,22 @@ def create_app(test_config=None):
             data.append(centre.json())
         return jsonify({'success': True, 'data': data}), 200
 
+    @app.route('/api/v1/sessions/<int:session_id>/sessioncentres/<int:departement_id>')
+    @requires_auth('get:sessioncentres')
+    def get_all_session_centres_departement(current_user, session_id, departement_id):
+        session = Session.query.filter(Session.id == session_id).one_or_none()
+        if session is None:
+            abort(404)
+        try:
+            centres = SessionCentre.centre_session_departement(
+                session_id, departement_id)
+            data = []
+            for centre in centres:
+                data.append(centre.Shortjson())
+            return jsonify({'success': True, 'data': data}), 200
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+
     @app.route('/api/v1/sessions/<int:session_id>', methods=["DELETE"])
     @requires_auth('delete:sessions')
     def delete_session_by_id(current_user, session_id):
@@ -329,10 +344,9 @@ def create_app(test_config=None):
     @requires_auth('post:sessioncentres')
     def post_sessioncentres(current_user):
         data = request.get_json()
-        is_validated = validate_structure(**data)
+        is_validated = validate_centre(**data)
         if is_validated is not True:
             return jsonify({'success': False, 'message': 'Invalid data entry', 'error': is_validated}), 409
-
         session = Session.query.filter(
             Session.id == data["session"]).one_or_none()
         structure = Structure.query.filter(
@@ -340,12 +354,14 @@ def create_app(test_config=None):
         if session is None or structure is None:
             abort(404)
         try:
-            centre = SessionCentre(session_id=data["session"], structure_id=data["structure"], form_centre=data["form"],
-                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"])
+            centre = SessionCentre(session_id=data["session"], structure_id=data["structure"], form_centre=data["form"], centre_id=data['centre'],
+                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"], nbr_candidat_ecrit=data["nbr_candidat_ecrit"])
             centre.insert()
+            if data.get('divide', False):
+                SessionCentre.getByDivide(
+                    centre.centre_id, centre.nbr_candidat_ecrit)
             return jsonify({'success': True, 'data': centre.json()}), 201
         except Exception as e:
-            print(e)
             return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/v1/sessioncentres/<int:sessioncentre_id>', methods=["PUT"])
@@ -660,6 +676,21 @@ def create_app(test_config=None):
         try:
             arrondissement.delete()
             return jsonify({'success': True, 'message': f'the arrondissement with ID {arrondissement_id} has been deleted'}), 200
+        except Exception as e:
+            return jsonify({'success': False, "error": 500, 'message': str(e)}), 500
+
+    @app.route('/api/v1/arrondissements/<int:arrondissement_id>/structures', methods=["GET"])
+    @requires_auth('get:structures')
+    def get_structures_arrondissement(current_user, arrondissement_id):
+        arrondissement = Arrondissement.query.filter_by(
+            id=arrondissement_id).one_or_none()
+        if arrondissement is None:
+            abort(404)
+        try:
+            data = []
+            for structure in arrondissement.structures:
+                data.append(structure.json())
+            return jsonify({'success': True, 'data': data}), 200
         except Exception as e:
             return jsonify({'success': False, "error": 500, 'message': str(e)}), 500
 

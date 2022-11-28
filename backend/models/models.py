@@ -5,6 +5,7 @@ from time import timezone
 from operator import or_
 from sqlalchemy import Column, String, Integer, Boolean, Numeric, Float, func
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import text
 from werkzeug.security import check_password_hash
 
 database_name = "decdevis"
@@ -663,6 +664,7 @@ class SessionCentre(db.Model):
     def update(self, data):
         self.form_centre = data['form']
         self.type_centre = data['type']
+        self.centre_id = data['centre']
         self.isForDisabled = data['for_disabled']
         self.isForOral = data['for_oral']
         self.nbr_candidat_ecrit = data['nbr_candidat_ecrit']
@@ -679,6 +681,22 @@ class SessionCentre(db.Model):
     def getByID(cls, _id):
         find = cls.query.filter_by(id=_id).one_or_none()
         return find
+
+    @classmethod
+    def getByDivide(cls, _id, nb_candidate):
+        find = cls.query.filter_by(id=_id).one_or_none()
+        find.nbr_candidat_ecrit -= nb_candidate
+        return db.session.commit()
+
+    @classmethod
+    def centre_session_departement(cls, session_id, department_id):
+        centres = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id = :p2))""")
+        ).params(p1=session_id, p2=department_id).all()
+        return centres
+        """ result = db.session.execute('SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id = :p2))', {
+                                    'p1': session_id, 'p2': department_id})
+        return result.fetchall() """
 
     def __repr__(self):
         return f'<Session ID: {self.id} Name: {self.session_name} >'

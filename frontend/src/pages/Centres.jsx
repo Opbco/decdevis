@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
+import SafetyDividerIcon from '@mui/icons-material/SafetyDividerTwoTone'
 import { DataGrid, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
 import Snackbar from '@mui/material/Snackbar';
@@ -22,16 +23,17 @@ function EditToolbar(props) {
         setOpen(true)
         setCentre({
             id: -1,
-            'session': session,
-            'structure': null,
-            'region': null,
-            'departement': null,
-            'arrondissement': null,
-            'centre': null,
-            'form': 'C',
-            'type': 'E',
-            'for_disabled': false,
-            'for_oral': false,
+            session: session,
+            structure: null,
+            region: null,
+            departement: null,
+            arrondissement: null,
+            centre: null,
+            form: 'C',
+            type: 'E',
+            for_disabled: false,
+            for_oral: false,
+            isNew: true
         })
     };
 
@@ -69,12 +71,22 @@ export default function Centres() {
     const handleCloseSnackbar = () => setSnackbar(null);
 
     const handleDeleteClick = (id) => () => {
-        protectedApi.delete(`/sessioncentres/${id}`).then((res) => {
-            setCentres(centres.filter((row) => row.id !== id));
-            setSnackbar({ children: 'Centre | Sous-centre successfully deleted', severity: 'success' });
-        }).catch(function (error) {
-            Swal.fire(t("error"), error.message, "error");
-        });
+        Swal.fire({
+            title: "Do you really want to delete this center",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: "Delete",
+            confirmButtonColor: "#d33"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                protectedApi.delete(`/sessioncentres/${id}`).then((res) => {
+                    setCentres(centres.filter((row) => row.id !== id));
+                    setSnackbar({ children: 'Centre | Sous-centre successfully deleted', severity: 'success' });
+                }).catch(function (error) {
+                    Swal.fire(t("error"), error.message, "error");
+                });
+            }
+        })
     };
 
     const handleEditClick = (row) => () => {
@@ -82,8 +94,14 @@ export default function Centres() {
         setCentre(row);
     }
 
+    const handleDivideClick = (row) => () => {
+        const centreAssist = { ...row, id: -1, structure: null, nbr_candidat_ecrit: 0, centre: { ...row }, form: row.form === 'C' ? 'CA' : 'SA', type: 'E', isNew: true, divide: true }
+        setOpen(true);
+        setCentre(centreAssist);
+    }
+
     const columns = [
-        { field: 'id', headerName: 'ID', type: 'number', width: 80 },
+        { field: 'id', headerName: 'ID', type: 'number', width: 40 },
         {
             field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Région', renderCell: renderObject
         },
@@ -93,13 +111,13 @@ export default function Centres() {
         {
             field: 'arrondissement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Arrondissement', renderCell: renderObject
         },
-        { field: 'centre', headerName: 'Examen', valueGetter: ({ value }) => `${value.structure.name}`, width: 100 },
-        { field: 'session', headerName: 'Examen', valueGetter: ({ value }) => `${value.name}`, width: 100 },
-        { field: 'structure', headerName: 'Etablissement', valueGetter: ({ value }) => `${value.structure.name}`, width: 150 },
+        { field: 'centre', headerName: 'Centre', valueGetter: ({ value }) => `${value.structure.name}`, width: 200 },
+        { field: 'structure', headerName: 'Etablissement', valueGetter: ({ value }) => `${value.name}`, width: 220 },
         { field: 'form', headerName: 'Forme', type: 'singleSelect', valueOptions: ['C', 'CA', 'SC', 'SA'], width: 100 },
         { field: 'type', headerName: 'Type', type: 'singleSelect', valueOptions: ['E', 'EC', 'ECD', 'EP', 'EPC', 'EPCD'], width: 100 },
-        { field: 'for_disabled', headerName: 'Handicapés', type: 'bool', width: 80 },
-        { field: 'for_oral', headerName: 'Centre Oral', type: 'bool', width: 80 },
+        { field: 'nbr_candidat_ecrit', headerName: 'Nombre Candidats', type: 'number', width: 100 },
+        { field: 'for_disabled', headerName: 'Handicapés', type: 'boolean', width: 80 },
+        { field: 'for_oral', headerName: 'Centre Oral', type: 'boolean', width: 80 },
         {
             field: 'actions',
             type: 'actions',
@@ -120,6 +138,12 @@ export default function Centres() {
                         icon={<DeleteIcon />}
                         label="Delete"
                         onClick={handleDeleteClick(id)}
+                        color="inherit"
+                    />,
+                    <GridActionsCellItem
+                        icon={<SafetyDividerIcon />}
+                        label="Divide"
+                        onClick={handleDivideClick(row)}
                         color="inherit"
                     />,
                 ];

@@ -51,6 +51,7 @@ const Login = ({ error, isLoading, loginUser, clearErrors }) => {
   const from = location.state?.from?.pathname || "/";
   let navigate = useNavigate();
 
+
   const handleChange = (prop) => (event) => {
     setCredentials({ ...credentials, [prop]: event.target.value });
   };
@@ -67,6 +68,7 @@ const Login = ({ error, isLoading, loginUser, clearErrors }) => {
 
   const submitForm = (e) => {
     e.preventDefault();
+    console.log(from);
     loginUser(credentials, navigate, from);
   };
 
@@ -82,7 +84,7 @@ const Login = ({ error, isLoading, loginUser, clearErrors }) => {
             {t("title")}
           </Typography>
           {isLoading ? (
-            <CircularProgress sx={{ mt: "4rem" }} />
+            <CircularProgress sx={{ mt: "4rem", alignSelf: "center" }} />
           ) : (
             <>
               <Form>

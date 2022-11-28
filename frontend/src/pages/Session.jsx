@@ -5,17 +5,16 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Close';
-import { DataGrid, GridRowModes, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { useTranslation } from "react-i18next";
 import useApiRequest from '../redux/api/useApiRequest';
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Typography } from '@mui/material';
 import SessionExamForm from '../components/SessionExamForm';
+import { HomeWorkRounded } from '@mui/icons-material';
 
 function EditToolbar(props) {
     const { setSessions, protectedApi, exam } = props;
@@ -56,21 +55,36 @@ export default function Session() {
     const protectedApi = useApiRequest();
     const location = useLocation();
     const exam = location.state?.data;
+    let navigate = useNavigate();
 
     const handleCloseSnackbar = () => setSnackbar(null);
 
     const handleDeleteClick = (id) => () => {
-        protectedApi.delete(`/sessions/${id}`).then((res) => {
-            setSessions(sessions.filter((row) => row.id !== id));
-            setSnackbar({ children: 'Session successfully deleted', severity: 'success' });
-        }).catch(function (error) {
-            Swal.fire(t("error"), error.message, "error");
-        });
+        Swal.fire({
+            title: "Do you really want to delete this session",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: "Delete",
+            confirmButtonColor: "#d33"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                protectedApi.delete(`/sessions/${id}`).then((res) => {
+                    setSessions(sessions.filter((row) => row.id !== id));
+                    setSnackbar({ children: 'Session successfully deleted', severity: 'success' });
+                }).catch(function (error) {
+                    Swal.fire(t("error"), error.message, "error");
+                });
+            }
+        })
     };
 
     const handleEditClick = (row) => () => {
         setOpen(true);
         setSession(row);
+    }
+
+    const goCentres = (row) => () => {
+        navigate(`/exams/centres`, { state: { data: row } });
     }
 
     const columns = [
@@ -97,6 +111,13 @@ export default function Session() {
                         icon={<DeleteIcon />}
                         label="Delete"
                         onClick={handleDeleteClick(id)}
+                        color="inherit"
+                    />,
+                    <GridActionsCellItem
+                        icon={<HomeWorkRounded />}
+                        label="Centres"
+                        className="textPrimary"
+                        onClick={goCentres(row)}
                         color="inherit"
                     />,
                 ];

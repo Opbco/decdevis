@@ -6,7 +6,6 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import useApiRequest from "../redux/api/useApiRequest";
 import DialogTitle from "@mui/material/DialogTitle";
-import Swal from "sweetalert2";
 import { Box, TextField } from "@mui/material";
 
 const FieldSet = styled("fieldset")(({ theme, title }) => ({

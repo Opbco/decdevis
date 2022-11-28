@@ -25,6 +25,7 @@ import Arrondissement from "./pages/Arrondissement";
 import Structure from "./pages/Structure";
 import Exam from "./pages/Exam";
 import Session from "./pages/Session";
+import Centres from "./pages/Centres";
 
 const theme = createTheme({
   palette: {
@@ -80,8 +81,9 @@ root.render(
                   <Route path="/arrondissements" element={<Arrondissement />} />
                   <Route path="/structures" element={<Structure />} />
                   <Route path="/exams" element={<Exam />}>
-                    <Route path="/exams/session" element={<Session />} />
+                    <Route path="/exams/sessions" element={<Session />} />
                   </Route>
+                  <Route path="/exams/centres" element={<Centres />} />
                 </Route>
                 <Route
                   path="login"

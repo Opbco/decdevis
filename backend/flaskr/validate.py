@@ -116,7 +116,8 @@ def validate_structure(**args):
 
 def validate_centre(**args):
     """Centre Validator"""
-    if not args.get('session') or not args.get('structure') or not args.get('form') or not args.get('type') or not args.get('for_disabled') or not args.get('for_oral'):
+    print(args)
+    if not args.get('session') or not args.get('structure') or not args.get('form') or not args.get('type') or args.get('for_disabled', None) is None or args.get('for_oral', None) is None:
         return {
             'session': 'session of examination is required',
             'structure': 'the structure hosting the examination is required',
@@ -125,8 +126,7 @@ def validate_centre(**args):
             'for_disabled': 'you have to indicate if the center will be used for disabled candidate',
             'for_oral': 'you have to indicate if the center will be used for ORAL'
         }
-    if not isinstance(args.get('session'), int) or \
-            not isinstance(args.get('structure'), int) or not isinstance(args.get('for_disabled'), bool) or not isinstance(args.get('for_oral'), bool):
+    if not isinstance(args.get('session'), int) or not isinstance(args.get('structure'), int) or not isinstance(args.get('for_disabled'), bool) or not isinstance(args.get('for_oral'), bool):
         return {
             'session': 'session must be an integer',
             'structure': 'structure must be an integer',
