@@ -43,40 +43,17 @@ EditToolbar.propTypes = {
 };
 
 const CustomEditComponent = (props) => {
-    const { id, value, field } = props;
+    const { id, value, field, departements } = props;
     const apiRef = useGridApiContext();
-    const protectedApi = useApiRequest();
-    const [rValue, setRvalue] = React.useState({ id: -1, name: value });
-    const [departements, setDepartements] = React.useState([]);
-
-    React.useEffect(() => {
-        protectedApi.get('/departements').then((res) => {
-            setDepartements(res.data.data.map((dep) => ({ id: dep.id, name: dep.name, region: dep.region.name })));
-        }).catch(function (error) {
-            Swal.fire("error", error.message, "error");
-        });
-    }, [])
 
     const handleValueChange = (value) => {
         apiRef.current.setEditCellValue({ id, field, value: value });
     };
 
-    React.useEffect(() => {
-        if (Boolean(departements.length)) {
-            for (var i = 0; i < departements.length; i++) {
-                if (departements[i].name === value) {
-                    setRvalue(departements[i]);
-                    break;
-                }
-            }
-        }
-    }, [departements])
-
     return <Autocomplete
-        value={rValue}
+        value={JSON.parse(value)}
         onChange={(event, newValue) => {
-            setRvalue(newValue);
-            handleValueChange(newValue)
+            handleValueChange(JSON.stringify(newValue))
         }}
         groupBy={(option) => option.region}
         id="controllable-departements"
@@ -88,7 +65,8 @@ const CustomEditComponent = (props) => {
 }
 
 function renderRegion(params) {
-    return (<Typography component="h5">{params.value}</Typography>);
+    const value = !params.value.startsWith("{") ? params.value : JSON.parse(params.value).name
+    return (<Typography component="h5">{value}</Typography>);
 }
 
 export default function Arrondissement() {
@@ -98,6 +76,15 @@ export default function Arrondissement() {
     const [snackbar, setSnackbar] = React.useState(null);
     const protectedApi = useApiRequest();
     const handleCloseSnackbar = () => setSnackbar(null);
+    const [departements, setDepartements] = React.useState([]);
+
+    React.useEffect(() => {
+        protectedApi.get('/departements').then((res) => {
+            setDepartements(res.data.data.map((dep) => ({ id: dep.id, name: dep.name, region: dep.region.name })));
+        }).catch(function (error) {
+            Swal.fire("error", error.message, "error");
+        });
+    }, [])
 
     const handleRowEditStart = (params, event) => {
         event.defaultMuiPrevented = true;
@@ -140,7 +127,7 @@ export default function Arrondissement() {
         async (newRow) => {
             var response;
             console.log(newRow);
-            const updatedRow = { id: newRow.id, name: newRow.name, departement: newRow.departement.id };
+            const updatedRow = { id: newRow.id, name: newRow.name, departement: JSON.parse(newRow.departement).id };
             // Make the HTTP request to save in the backend
             if (newRow.isNew) {
                 response = await protectedApi.post('/arrondissements', updatedRow);
@@ -171,7 +158,7 @@ export default function Arrondissement() {
             }, editable: true
         },
         {
-            field: 'departement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Département', renderCell: renderRegion, renderEditCell: (params) => <CustomEditComponent {...params} />, width: 200, editable: true
+            field: 'departement', type: 'string', valueGetter: ({ value }) => JSON.stringify(value), headerName: 'Département', renderCell: renderRegion, renderEditCell: (params) => <CustomEditComponent departements={departements} {...params} />, width: 200, editable: true
         },
         {
             field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Région', renderCell: renderRegion, width: 200, editable: false

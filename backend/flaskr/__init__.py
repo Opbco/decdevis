@@ -1,5 +1,7 @@
+import csv
+from gzip import READ
 import os
-from flask import Flask, request, abort, jsonify
+from flask import Flask, request, abort, jsonify, send_file
 from flask_cors import CORS
 from flask_migrate import Migrate
 import jwt
@@ -46,6 +48,8 @@ def create_app(test_config=None):
                              "Content-Type,Authorization,true")
         response.headers.add("Access-Control-Allow-Methods",
                              "GET,PUT,POST,DELETE,OPTIONS")
+        response.headers.add(
+            "Access-Control-Expose-Headers", "X-Suggested-Filename")
         response.headers.add("Access-Control-Allow-Credentials", "true")
         return response
 
@@ -292,12 +296,89 @@ def create_app(test_config=None):
     @app.route('/api/v1/sessions/<int:session_id>/sessioncentres')
     @requires_auth('get:sessioncentres')
     def get_all_session_centres(current_user, session_id):
+        region = request.args.get('region', 0, type=int)
+        type = request.args.get('type', 'all', type=str)
+        format = request.args.get('format', 'json', type=str)
         session = Session.query.filter(Session.id == session_id).one_or_none()
         if session is None:
             abort(404)
         data = []
-        for centre in session.sessioncentres:
-            data.append(centre.json())
+
+        centres = session.sessioncentres
+
+        if type == 'delibind':
+            centres = SessionCentre.query.filter(SessionCentre.type_centre.in_(
+                ['ECD', 'EPCD']), SessionCentre.session_id == session_id).all()
+
+        if type == 'oralind':
+            centres = SessionCentre.query.filter(
+                SessionCentre.isForOral == True, SessionCentre.session_id == session_id).all()
+
+        if (format != 'csv' and type != 'all') and region != 0:
+            if type == 'corrind':
+                centres = SessionCentre.centrecorrect_session_region(
+                    session_id, region)
+            elif type == 'delibind':
+                centres = SessionCentre.centredelib_session_region(
+                    session_id, region)
+            elif type == 'oralind':
+                centres = SessionCentre.centre_session_region_oral(
+                    session_id, region)
+            else:
+                centres = SessionCentre.centre_session_region(
+                    session_id, region)
+
+        print(centres)
+
+        if type == 'organisation':
+            for centre in centres:
+                data.append(centre.orgJson())
+
+        if type == 'indccs':
+            for centre in centres:
+                data.append(centre.ccsJson())
+
+        if type == 'vaccse':
+            for centre in centres:
+                data.append(centre.vaccseJson())
+
+        if type == 'corrind':
+            for centre in centres:
+                data.append(centre.corrJson())
+
+        if type == 'vaccseci':
+            for centre in centres:
+                data.append(centre.secJson())
+
+        if type == 'delibind':
+            for centre in centres:
+                data.append(centre.delibJson())
+
+        if type == 'oralind':
+            for centre in centres:
+                data.append(centre.vacOralJson())
+
+        if type == 'all':
+            for centre in centres:
+                data.append(centre.json())
+
+        if type == 'harmo':
+            data.append(SessionCentre.harmo_session_region(
+                session_id, region))
+
+        if type == 'dispatch':
+            data.append(SessionCentre.dispatch_session_region(
+                session_id, region))
+
+        if format == 'csv' and len(data) > 0:
+            with open('centres.csv', 'w', newline='') as csvFile:
+                csvWriter = csv.writer(csvFile, delimiter=';')
+                csvWriter.writerow(data[0].keys())
+                for d in data:
+                    csvWriter.writerow(d.values())
+                csvFile.close()
+            return send_file('../centres.csv', mimetype='text/csv', download_name='centres.csv', as_attachment=True)
+
         return jsonify({'success': True, 'data': data}), 200
 
     @app.route('/api/v1/sessions/<int:session_id>/sessioncentres/<int:departement_id>')
@@ -355,7 +436,7 @@ def create_app(test_config=None):
             abort(404)
         try:
             centre = SessionCentre(session_id=data["session"], structure_id=data["structure"], form_centre=data["form"], centre_id=data['centre'],
-                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"], nbr_candidat_ecrit=data["nbr_candidat_ecrit"])
+                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"])
             centre.insert()
             if data.get('divide', False):
                 SessionCentre.getByDivide(
@@ -460,7 +541,7 @@ def create_app(test_config=None):
     @app.route('/api/v1/regions')
     @requires_auth('get:regions')
     def get_all_regions(current_user):
-        regions = Region.query.all()
+        regions = Region.query.order_by(Region.region_name).all()
         data = []
         for region in regions:
             data.append(region.json())

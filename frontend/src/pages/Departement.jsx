@@ -43,40 +43,17 @@ EditToolbar.propTypes = {
 };
 
 const CustomEditComponent = (props) => {
-    const { id, value, field } = props;
+    const { id, value, regions, field } = props;
     const apiRef = useGridApiContext();
-    const protectedApi = useApiRequest();
-    const [rValue, setRvalue] = React.useState({ id: -1, name: value });
-    const [regions, setRegions] = React.useState([]);
-
-    React.useEffect(() => {
-        protectedApi.get('/regions').then((res) => {
-            setRegions(res.data.data);
-        }).catch(function (error) {
-            Swal.fire("error", error.message, "error");
-        });
-    }, [])
-
-    React.useEffect(() => {
-        if (Boolean(regions.length)) {
-            for (var i = 0; i < regions.length; i++) {
-                if (regions[i].name === value) {
-                    setRvalue(regions[i]);
-                    break;
-                }
-            }
-        }
-    }, [regions])
 
     const handleValueChange = (value) => {
         apiRef.current.setEditCellValue({ id, field, value: value });
     };
 
     return <Autocomplete
-        value={rValue}
+        value={JSON.parse(value)}
         onChange={(event, newValue) => {
-            setRvalue(newValue);
-            handleValueChange(newValue)
+            handleValueChange(JSON.stringify(newValue))
         }}
         id="controllable-region"
         options={regions}
@@ -87,7 +64,7 @@ const CustomEditComponent = (props) => {
 }
 
 function renderRegion(params) {
-    return (<Typography component="h5">{params.value}</Typography>);
+    return (<Typography component="h5">{JSON.parse(params.value).name}</Typography>);
 }
 
 export default function Departement() {
@@ -97,6 +74,7 @@ export default function Departement() {
     const [snackbar, setSnackbar] = React.useState(null);
     const protectedApi = useApiRequest();
     const handleCloseSnackbar = () => setSnackbar(null);
+    const [regions, setRegions] = React.useState([]);
 
     const handleRowEditStart = (params, event) => {
         event.defaultMuiPrevented = true;
@@ -139,7 +117,7 @@ export default function Departement() {
         async (newRow) => {
             var response;
             console.log(newRow);
-            const updatedRow = { id: newRow.id, name: newRow.name, region: newRow.region.id };
+            const updatedRow = { id: newRow.id, name: newRow.name, region: JSON.parse(newRow.region).id };
             // Make the HTTP request to save in the backend
             if (newRow.isNew) {
                 response = await protectedApi.post('/departements', updatedRow);
@@ -159,8 +137,6 @@ export default function Departement() {
         setSnackbar({ children: error.response.data.message, severity: 'error' });
     }, []);
 
-
-
     const columns = [
         { field: 'id', headerName: 'ID', type: 'number', width: 100, editable: false },
         {
@@ -170,7 +146,7 @@ export default function Departement() {
             }, editable: true
         },
         {
-            field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Region', renderCell: renderRegion, renderEditCell: (params) => <CustomEditComponent {...params} />, width: 200, editable: true
+            field: 'region', valueGetter: ({ value }) => JSON.stringify(value), headerName: 'Region', renderCell: renderRegion, renderEditCell: (params) => <CustomEditComponent regions={regions} {...params} />, width: 200, editable: true
         },
         {
             field: 'actions',
@@ -225,6 +201,14 @@ export default function Departement() {
         });
     }, [])
 
+    React.useEffect(() => {
+        protectedApi.get('/regions').then((res) => {
+            setRegions(res.data.data);
+        }).catch(function (error) {
+            Swal.fire("error", error.message, "error");
+        });
+    }, [])
+
     return (
         <Box
             sx={{
@@ -254,7 +238,7 @@ export default function Departement() {
                 }}
 
                 componentsProps={{
-                    toolbar: { setDepartements, setRowModesModel },
+                    toolbar: { setDepartements, setRowModesModel, regions },
                 }}
                 experimentalFeatures={{ newEditingApi: true }}
             />

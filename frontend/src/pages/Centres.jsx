@@ -13,7 +13,7 @@ import Alert from '@mui/material/Alert';
 import { useTranslation } from "react-i18next";
 import useApiRequest from '../redux/api/useApiRequest';
 import { useLocation } from "react-router-dom";
-import { Typography } from '@mui/material';
+import { Autocomplete, Stack, TextField, Typography } from '@mui/material';
 import CentreForm from '../components/CentreForm';
 
 function EditToolbar(props) {
@@ -62,11 +62,15 @@ export default function Centres() {
     const [centres, setCentres] = React.useState([]);
     const [snackbar, setSnackbar] = React.useState(null);
     const [open, setOpen] = React.useState(false);
+    const location = useLocation();
+    const [session, setSession] = React.useState(() => {
+        return location.state?.data;
+    });
     const [current_centre, setCentre] = React.useState(null);
+    const [sessions, setSessions] = React.useState([]);
     const [change, setChange] = React.useState(0);
     const protectedApi = useApiRequest();
-    const location = useLocation();
-    const session = location.state?.data;
+
 
     const handleCloseSnackbar = () => setSnackbar(null);
 
@@ -101,23 +105,6 @@ export default function Centres() {
     }
 
     const columns = [
-        { field: 'id', headerName: 'ID', type: 'number', width: 40 },
-        {
-            field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Région', renderCell: renderObject
-        },
-        {
-            field: 'departement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Département', renderCell: renderObject
-        },
-        {
-            field: 'arrondissement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Arrondissement', renderCell: renderObject
-        },
-        { field: 'centre', headerName: 'Centre', valueGetter: ({ value }) => `${value.structure.name}`, width: 200 },
-        { field: 'structure', headerName: 'Etablissement', valueGetter: ({ value }) => `${value.name}`, width: 220 },
-        { field: 'form', headerName: 'Forme', type: 'singleSelect', valueOptions: ['C', 'CA', 'SC', 'SA'], width: 100 },
-        { field: 'type', headerName: 'Type', type: 'singleSelect', valueOptions: ['E', 'EC', 'ECD', 'EP', 'EPC', 'EPCD'], width: 100 },
-        { field: 'nbr_candidat_ecrit', headerName: 'Nombre Candidats', type: 'number', width: 100 },
-        { field: 'for_disabled', headerName: 'Handicapés', type: 'boolean', width: 80 },
-        { field: 'for_oral', headerName: 'Centre Oral', type: 'boolean', width: 80 },
         {
             field: 'actions',
             type: 'actions',
@@ -149,20 +136,46 @@ export default function Centres() {
                 ];
             },
         },
+        { field: 'id', headerName: 'ID', type: 'number', width: 40 },
+        {
+            field: 'region', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Région', renderCell: renderObject
+        },
+        {
+            field: 'departement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Département', renderCell: renderObject
+        },
+        {
+            field: 'arrondissement', type: 'string', valueGetter: ({ value }) => `${value.name}`, headerName: 'Arrondissement', renderCell: renderObject
+        },
+        { field: 'centre', headerName: 'Centre', valueGetter: ({ value }) => `${value.structure.name}`, width: 200 },
+        { field: 'structure', headerName: 'Etablissement', valueGetter: ({ value }) => `${value.name}`, width: 220 },
+        { field: 'form', headerName: 'Forme', type: 'singleSelect', valueOptions: ['C', 'CA', 'SC', 'SA'], width: 100 },
+        { field: 'type', headerName: 'Type', type: 'singleSelect', valueOptions: ['E', 'EC', 'ECD', 'EP', 'EPC', 'EPCD'], width: 100 },
+        { field: 'nbr_candidat_ecrit', headerName: 'Nombre Candidats', type: 'number', width: 100 },
+        { field: 'for_disabled', headerName: 'Handicapés', type: 'boolean', width: 60 },
+        { field: 'for_oral', headerName: 'Oral', type: 'boolean', width: 60 },
+        { field: 'for_harmo', headerName: 'Harmonisation', type: 'boolean', width: 60 },
     ];
 
     React.useEffect(() => {
-        protectedApi.get(`/sessions/${session.id}/sessioncentres`).then((res) => {
+        protectedApi.get(`/sessions/${session?.id}/sessioncentres`).then((res) => {
             setCentres(res.data.data);
         }).catch(function (error) {
             Swal.fire(t("error"), error.message, "error");
         });
     }, [session, change]);
 
+    React.useEffect(() => {
+        protectedApi.get(`/sessions`).then((res) => {
+            setSessions(res.data.data);
+        }).catch(function (error) {
+            Swal.fire(t("error"), error.message, "error");
+        });
+    }, []);
+
     return (
         <Box
             sx={{
-                height: 300,
+                height: 600,
                 width: '94%',
                 margin: "0 auto",
                 '& .actions': {
@@ -173,8 +186,22 @@ export default function Centres() {
                 },
             }}
         >
-            <Box sx={{ margin: 1 }}>
-                <Typography variant="caption">{`${session.exam.name} (${session.name})`}</Typography>
+            <Box sx={{ margin: 2 }}>
+                <Autocomplete
+                    value={session}
+                    onChange={(event, newValue) => {
+                        setSession(newValue)
+                    }}
+                    id="controllable-session"
+                    groupBy={(option) => option.exam.name}
+                    options={sessions}
+                    getOptionLabel={(option) => `${option.exam.name} (${option.name})`}
+                    sx={{ width: 600 }}
+                    renderInput={(params) => <TextField {...params} label="Examination" />}
+                />
+            </Box>
+            <Box sx={{ margin: 2 }}>
+                <Typography variant="caption">{`${session?.exam.name} (${session?.name})`}</Typography>
             </Box>
             <DataGrid
                 rows={centres}

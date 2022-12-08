@@ -15,7 +15,6 @@ import {
   createTheme,
   CssBaseline,
   ThemeProvider,
-  Typography,
   CircularProgress,
 } from "@mui/material";
 import { blue } from "@mui/material/colors";
@@ -26,6 +25,8 @@ import Structure from "./pages/Structure";
 import Exam from "./pages/Exam";
 import Session from "./pages/Session";
 import Centres from "./pages/Centres";
+import NotFound from "./pages/NotFound";
+import Statistiques from "./pages/Statistiques";
 
 const theme = createTheme({
   palette: {
@@ -84,6 +85,7 @@ root.render(
                     <Route path="/exams/sessions" element={<Session />} />
                   </Route>
                   <Route path="/exams/centres" element={<Centres />} />
+                  <Route path="/exams/stats" element={<Statistiques />} />
                 </Route>
                 <Route
                   path="login"
@@ -93,19 +95,7 @@ root.render(
                     </Authorized>
                   }
                 />
-                <Route
-                  path="*"
-                  element={
-                    <Box
-                      display="grid"
-                      style={{ placeItems: "center", minHeight: "100vh" }}
-                    >
-                      <Typography variant="h2" color="primary">
-                        Error 404: Page Not Found
-                      </Typography>
-                    </Box>
-                  }
-                />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
           </PersistGate>

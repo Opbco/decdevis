@@ -7,7 +7,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import CancelIcon from '@mui/icons-material/Close';
 import { DataGrid, GridRowModes, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
@@ -176,7 +176,7 @@ export default function Exam() {
                         color="inherit"
                     />,
                     <GridActionsCellItem
-                        icon={<AnalyticsIcon />}
+                        icon={<DateRangeIcon />}
                         label="Sessions"
                         title='Sessions'
                         onClick={goSessions(row)}

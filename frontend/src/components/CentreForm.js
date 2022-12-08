@@ -69,7 +69,7 @@ export default function CentreForm({
       structure: data.structure.id,
       region: null,
       departement: null,
-      arrondissement: null
+      arrondissement: null,
     };
     if (data.id === -1) {
       protectedApi
@@ -110,7 +110,11 @@ export default function CentreForm({
   };
 
   const handleDataChange = (e) => {
-    setData((value) => ({ ...value, [e.target.name]: e.target.type == 'checkbox' ? e.target.checked : e.target.value }));
+    setData((value) => ({
+      ...value,
+      [e.target.name]:
+        e.target.type == "checkbox" ? e.target.checked : e.target.value,
+    }));
   };
 
   React.useEffect(() => {
@@ -194,7 +198,7 @@ export default function CentreForm({
   }, [data?.arrondissement]);
 
   return (
-    <Dialog open={open} onClose={handleClose}>
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
       <DialogTitle>
         Création et Modification des Centres | Sous-centres
       </DialogTitle>
@@ -328,6 +332,20 @@ export default function CentreForm({
             labelPlacement="start"
           />
         </FormControl>
+        <FormControl>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={data?.for_harmo}
+                name="for_harmo"
+                onChange={handleDataChange}
+                inputProps={{ "aria-label": "Centre pour harmonisation?" }}
+              />
+            }
+            label="Centre Harmonisation ?"
+            labelPlacement="start"
+          />
+        </FormControl>
         <FieldSet title="Candidates Information">
           <TextField
             autoFocus
@@ -353,7 +371,7 @@ export default function CentreForm({
           <TextField
             id="nbr_candidat_epreuve_facultive"
             name="nbr_candidat_epreuve_facultive"
-            label="Nombre de candidats à l'épreuve facultative"
+            label="Nombre de copies à l'épreuve facultative"
             type="number"
             value={data?.nbr_candidat_epreuve_facultive}
             onChange={handleDataChange}
@@ -361,6 +379,7 @@ export default function CentreForm({
             variant="standard"
           />
           <TextField
+            disabled={!data?.for_oral}
             id="nbr_candidat_oral"
             name="nbr_candidat_oral"
             label="Nombre de candidats à l'oral"
@@ -371,6 +390,7 @@ export default function CentreForm({
             variant="standard"
           />
           <TextField
+            disabled={!data?.type.includes("C")}
             id="nbr_candidat_marked"
             name="nbr_candidat_marked"
             label="Nombre de candidats pour correction"
@@ -381,16 +401,18 @@ export default function CentreForm({
             variant="standard"
           />
           <TextField
-            id="nbr_copies_marked"
-            name="nbr_copies_marked"
-            label="Nombre de copies corrigées"
+            disabled={!data?.type.includes("C")}
+            id="nbr_matiere"
+            name="nbr_matiere"
+            label="Nombre de matières (Harmonisation)"
             type="number"
-            value={data?.nbr_copies_marked}
+            value={data?.nbr_matiere}
             onChange={handleDataChange}
             fullWidth
             variant="standard"
           />
           <TextField
+            disabled={!data?.type.includes("D")}
             id="nbr_candidat_delib"
             name="nbr_candidat_delib"
             label="Nombre de candidats pour délibération"

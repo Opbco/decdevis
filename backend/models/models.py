@@ -1,11 +1,13 @@
 from ast import Num
 from datetime import datetime, timedelta
 from email.policy import default
+from math import ceil
 from time import timezone
 from operator import or_
-from sqlalchemy import Column, String, Integer, Boolean, Numeric, Float, func
+from sqlalchemy import Column, String, Integer, Boolean, Numeric, Float, func, create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import text
+from sqlalchemy.orm import validates
 from werkzeug.security import check_password_hash
 
 database_name = "decdevis"
@@ -303,7 +305,7 @@ class Session(db.Model):
     nbr_surveillant_salle_write = Column(Integer, db.CheckConstraint(
         'nbr_surveillant_salle_write > 0'), nullable=True, server_default="2")
     nbr_salle_surveillants_write = Column(Integer, db.CheckConstraint(
-        'nbr_salle_surveillants_write > 0'), nullable=True, server_default="5")
+        'nbr_salle_surveillants_write > 0'), nullable=True, server_default="4")
     nbr_jour_examen_write = Column(Integer, db.CheckConstraint(
         'nbr_jour_examen_write > 0'), nullable=True, server_default="4")
     nbr_vaccation_jour_write = Column(Integer, db.CheckConstraint(
@@ -590,8 +592,11 @@ class SessionCentre(db.Model):
                          nullable=False, server_default='E')
     isForDisabled = Column(Boolean, nullable=False, server_default='False')
     isForOral = Column(Boolean, nullable=False, server_default='False')
+    isForHarmo = Column(Boolean, nullable=False, server_default='False')
     nbr_candidat_ecrit = Column(Integer, db.CheckConstraint(
         'nbr_candidat_ecrit > 0'), nullable=True, server_default='10')
+    nbr_matiere = Column(Integer, db.CheckConstraint(
+        'nbr_matiere > 0'), nullable=True, server_default='0')
     nbr_candidat_handicap = Column(Integer, db.CheckConstraint(
         'nbr_candidat_handicap > 0'), nullable=True, server_default='0')
     nbr_copies_marked = Column(Integer, db.CheckConstraint(
@@ -610,6 +615,45 @@ class SessionCentre(db.Model):
         'sessioncentres.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=True, index=True)
     sub_centre = db.relationship(
         "SessionCentre", backref=db.backref("centre", remote_side=[id]))
+    # frais d'organisation
+    frais_organisation = Column(Float, nullable=True, server_default="0")
+    # vaccation surveillance
+    vaccation_surveillance = Column(Float, nullable=True, server_default="0")
+    # indemnite_chefcentre
+    indemnite_chefcentre = Column(Float, nullable=True, server_default="0")
+    # nombre de sous-atelier
+    nbr_sous_atelier_oral = Column(Integer, db.CheckConstraint(
+        'nbr_sous_atelier_oral > 0'), nullable=True, server_default='0')
+    # indemnité chef salle sous-atelier
+    indemnite_chef_sous_atelier_oral = Column(Float, db.CheckConstraint(
+        'indemnite_chef_sous_atelier_oral > 0'), nullable=True, server_default='0')
+    # membre sécrétariat
+    nbr_membre_sec = Column(Integer, db.CheckConstraint(
+        'nbr_membre_sec > 0'), nullable=True, server_default='0')
+    nbr_vaccation_aecrit_sec = Column(Integer, db.CheckConstraint(
+        'nbr_vaccation_aecrit_sec > 0'), nullable=True, server_default='0')
+    nbr_vaccation_ecrit_sec = Column(Integer, db.CheckConstraint(
+        'nbr_vaccation_ecrit_sec > 0'), nullable=True, server_default='0')
+    nbr_vaccation_apecrit_sec = Column(Integer, db.CheckConstraint(
+        'nbr_vaccation_apecrit_sec > 0'), nullable=True, server_default='0')
+    nbr_vaccation_correct_sec = Column(Integer, db.CheckConstraint(
+        'nbr_vaccation_correct_sec > 0'), nullable=True, server_default='0')
+    nbr_vaccation_delib_sec = Column(Integer, db.CheckConstraint(
+        'nbr_vaccation_delib_sec > 0'), nullable=True, server_default='0')
+    indemnite_chef_sec = Column(Float, db.CheckConstraint(
+        'indemnite_chef_sec > 0'), nullable=True, server_default='0')
+    # chargé de mission
+    nbr_vaccation_cm = Column(Integer, db.CheckConstraint(
+        'nbr_vaccation_cm > 0'), nullable=True, server_default='0')
+    indemnite_cm = Column(Float, db.CheckConstraint(
+        'indemnite_cm > 0'), nullable=True, server_default='0')
+    # montant frais de correction
+    montant_frais_corec = Column(Float, db.CheckConstraint(
+        'montant_frais_corec > 0'), nullable=True, server_default='0')
+    nombre_chef_salle_corec = Column(Float, db.CheckConstraint(
+        'nombre_chef_salle_corec > 0'), nullable=True, server_default='0')
+    nombre_jury_delib = Column(Float, db.CheckConstraint(
+        'nombre_jury_delib > 0'), nullable=True, server_default='0')
 
     def Shortjson(self):
         return {
@@ -623,11 +667,180 @@ class SessionCentre(db.Model):
             'nbr_candidat_ecrit': self.nbr_candidat_ecrit,
             'nbr_candidat_handicap': self.nbr_candidat_handicap,
             'nbr_copies_marked': self.nbr_copies_marked,
+            'nbr_matiere': self.nbr_matiere,
             'nbr_candidat_marked': self.nbr_candidat_marked,
             'nbr_candidat_delib': self.nbr_candidat_delib,
             'nbr_candidat_oral': self.nbr_candidat_oral,
             'nbr_candidat_epreuve_facultive': self.nbr_candidat_epreuve_facultive,
             'nbr_candidat_inapte': self.nbr_candidat_inapte
+        }
+
+    def orgJson(self):
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'effectif': self.nbr_candidat_ecrit,
+            'frais': SessionCentre.get_frais_org(int(self.nbr_candidat_ecrit)),
+        }
+
+    def vacOralJson(self):
+        nb_sous_atelier = ceil(self.nbr_candidat_oral /
+                               self.session.nbr_candidat_atelier_oral)
+        nombre_total_membre = nb_sous_atelier * self.session.nbr_membre_atelier_oral
+        total_vac = nombre_total_membre * self.session.nbr_vaccation_membre_oral
+        montant = self.session.taux_vaccation_surveillant_oral * total_vac
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'effectif': self.nbr_candidat_oral,
+            'nb_sous_atelier': nb_sous_atelier,
+            'nb_matiere_oral': self.session.nbr_matiere_atelier_oral,
+            'nb_vac_membre': self.session.nbr_vaccation_membre_oral,
+            'nombre_total_membre': nombre_total_membre,
+            'total_vac': total_vac,
+            'taux_vac': self.session.taux_vaccation_surveillant_oral,
+            'montant': montant,
+            'indemnite': self.session.indemnite_chef_salle_oral,
+            'total': montant + self.session.indemnite_chef_salle_oral
+        }
+
+    def delibJson(self):
+        nbr_jury = self.nbr_candidat_delib // self.session.nbr_candidat_jury_delib
+        total_vac_jury = (self.session.nbr_membre_lecteur_delib * self.session.nbr_vaccation_lecteur_delib) + \
+            (self.session.nbr_vaccation_teneur_delib *
+             self.session.nbr_membre_teneur_delib)
+        montant_indemnite = nbr_jury * \
+            (self.session.indemnite_president_jury_delib +
+             self.session.indemnite_vpresident_jury_delib)
+        montant_vacc = total_vac_jury * self.session.taux_vaccation_membre_delib * nbr_jury
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'effectif': self.nbr_candidat_delib,
+            'nbr_jury': nbr_jury,
+            'nbr_membre_lec': self.session.nbr_membre_lecteur_delib,
+            'vac_membre_lec': self.session.nbr_vaccation_lecteur_delib,
+            'nbr_membre_ten': self.session.nbr_membre_teneur_delib,
+            'vac_membre_ten': self.session.nbr_vaccation_teneur_delib,
+            'total_vac_jury': total_vac_jury,
+            'taux_vac_jury': self.session.taux_vaccation_membre_delib,
+            'montant_vac_jury': montant_vacc,
+            'nbr_pr_jury': nbr_jury,
+            'indemnite_pr_jury': self.session.indemnite_president_jury_delib,
+            'nbr_vpr_jury': nbr_jury,
+            'indemnite_vpr_jury': self.session.indemnite_vpresident_jury_delib,
+            'montant_indemnite': montant_indemnite,
+            'total': montant_vacc + montant_indemnite
+        }
+
+    def secJson(self):
+        nbr_membre_sec = SessionCentre.get_nbr_membre_sec(
+            self.nbr_candidat_ecrit, self.session)
+        nbr_vaccation_aecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+            self.nbr_candidat_ecrit)
+        nbr_vaccation_ecrit_sec = self.session.nbr_vaccation_jour_sec_write * \
+            self.session.nbr_jour_examen_write
+        nbr_vaccation_apecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+            self.nbr_candidat_ecrit)
+        nbr_vaccation_correct_sec = self.session.nbr_vaccation_sec_correct if "C" in self.type_centre else 0
+        nbr_vaccation_delib_sec = self.session.nbr_vaccation_sec_delib if "D" in self.type_centre else 0
+        indemnite_chef_sec = self.session.indemnite_chef_sec_all if "D" in self.type_centre else self.session.indemnite_chef_sec
+        montant = nbr_membre_sec * (nbr_vaccation_aecrit_sec + nbr_vaccation_ecrit_sec + nbr_vaccation_apecrit_sec +
+                                    nbr_vaccation_correct_sec + nbr_vaccation_delib_sec) * self.session.taux_vaccation_sec
+        total = indemnite_chef_sec + montant
+        nbr_vac_cm = nbr_vaccation_aecrit_sec + nbr_vaccation_ecrit_sec + \
+            nbr_vaccation_apecrit_sec + nbr_vaccation_correct_sec * 2 + nbr_vaccation_delib_sec
+
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'status': self.type_centre,
+            'effectif': self.nbr_candidat_ecrit,
+            'nbr_membre_sec': nbr_membre_sec,
+            'nbr_vaccation_aecrit_sec': nbr_vaccation_aecrit_sec,
+            'nbr_vaccation_ecrit_sec': nbr_vaccation_ecrit_sec,
+            'nbr_vaccation_apecrit_sec': nbr_vaccation_apecrit_sec,
+            'nbr_vaccation_correct_sec': nbr_vaccation_correct_sec,
+            'nbr_vaccation_correct_cm': nbr_vaccation_correct_sec * 2,
+            'nbr_vaccation_delib_sec': nbr_vaccation_delib_sec,
+            'taux_vaccation_sec': self.session.taux_vaccation_sec,
+            'total_membre_sec': montant,
+            'indemnite_chef_sec': indemnite_chef_sec,
+            'montant': total,
+            'nbr_vaccation_cm': nbr_vac_cm,
+            'taux_vaccation_cm': self.session.taux_vaccation_cm,
+            'montant_vacc_cm': nbr_vac_cm * self.session.taux_vaccation_cm,
+            'indemnite_cm': self.session.indemnite_cm,
+            'total_cm': (nbr_vac_cm * self.session.taux_vaccation_cm) + self.session.indemnite_cm
+        }
+
+    def ccsJson(self):
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'indemnite': SessionCentre.get_indemnite_sec(self.form_centre, self.session),
+        }
+
+    def corrJson(self):
+        nbr_chef_salle = self.session.nbr_matiere_correct if "C" in self.type_centre else 0
+        nbr_copies = self.nbr_candidat_marked * self.session.nbr_matiere_correct
+        montant = (self.nbr_candidat_epreuve_facultive +
+                   self.nbr_candidat_inapte + nbr_copies) * self.session.taux_copie_correct
+        total = montant + (nbr_chef_salle *
+                           self.session.indemnite_chef_salle_correct)
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'status': self.type_centre,
+            'effectif': self.nbr_candidat_ecrit,
+            'copies_epreuve_facult': self.nbr_candidat_epreuve_facultive,
+            'nbr_candidat_eps': self.nbr_candidat_inapte,
+            'nbr_copies_correct': nbr_copies,
+            'taux_correct_copie': self.session.taux_copie_correct,
+            'montant': montant,
+            'nbr_chef_salle': nbr_chef_salle,
+            'indemnite_chef_salle': self.session.indemnite_chef_salle_correct,
+            'total': total
+        }
+
+    def vaccseJson(self):
+        nbsalle = ceil(self.nbr_candidat_ecrit /
+                       self.session.nbr_candidat_salle_write)
+        nbsurveil = nbsalle * self.session.nbr_surveillant_salle_write
+        nbsurvsal = nbsalle // self.session.nbr_salle_surveillants_write
+        nbvacc = self.session.nbr_vaccation_jour_write * \
+            self.session.nbr_jour_examen_write
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'type': self.type_centre,
+            'effectif': self.nbr_candidat_ecrit,
+            'nbr_salle': nbsalle,
+            'nbr_surv_salle': nbsurveil,
+            'nbr_surv_surv': nbsurvsal,
+            'nbr_vaccation': nbvacc,
+            'taux_vaccation': self.session.taux_vaccation_surveillant_write,
+            'montant': (nbsurveil+nbsurvsal) * nbvacc * self.session.taux_vaccation_surveillant_write,
         }
 
     def json(self):
@@ -643,6 +856,8 @@ class SessionCentre(db.Model):
             'type': self.type_centre,
             'for_disabled': self.isForDisabled,
             'for_oral': self.isForOral,
+            'for_harmo': self.isForHarmo,
+            'nbr_matiere': self.nbr_matiere,
             'nbr_candidat_ecrit': self.nbr_candidat_ecrit,
             'nbr_candidat_handicap': self.nbr_candidat_handicap,
             'nbr_copies_marked': self.nbr_copies_marked,
@@ -650,8 +865,87 @@ class SessionCentre(db.Model):
             'nbr_candidat_delib': self.nbr_candidat_delib,
             'nbr_candidat_oral': self.nbr_candidat_oral,
             'nbr_candidat_epreuve_facultive': self.nbr_candidat_epreuve_facultive,
-            'nbr_candidat_inapte': self.nbr_candidat_inapte
+            'nbr_candidat_inapte': self.nbr_candidat_inapte,
         }
+
+    @validates('nbr_candidat_oral')
+    def update_nbr_candidat_oral(self, key, value):
+        if self.session and value:
+            self.nbr_sous_atelier_oral = ceil(
+                int(value) / int(self.session.nbr_candidat_atelier_oral)) if value else 0
+            self.indemnite_chef_sous_atelier_oral = self.session.indemnite_chef_salle_oral
+        return value
+
+    @validates('nbr_candidat_ecrit')
+    def update_nbr_candidat_ecrit(self, key, value):
+        if self.session and value:
+            self.frais_organisation = SessionCentre.get_frais_org(int(value))
+            self.vaccation_surveillance = SessionCentre.get_vaccation_surv(
+                int(value), self.session)
+            self.nbr_membre_sec = SessionCentre.get_nbr_membre_sec(
+                int(value), self.session)
+            self.nbr_vaccation_aecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+                int(value))
+            self.nbr_vaccation_ecrit_sec = self.session.nbr_vaccation_jour_sec_write * \
+                self.session.nbr_jour_examen_write
+            self.nbr_vaccation_apecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+                int(value))
+            self.nbr_vaccation_correct_sec = self.session.nbr_vaccation_sec_correct if "C" in self.type_centre else 0
+            self.nbr_vaccation_delib_sec = self.session.nbr_vaccation_sec_delib if "D" in self.type_centre else 0
+            self.indemnite_chef_sec = self.session.indemnite_chef_sec_all if "D" in self.type_centre else self.session.indemnite_chef_sec
+            self.nbr_vaccation_cm = (self.nbr_vaccation_correct_sec * 2) + self.nbr_vaccation_delib_sec + \
+                self.nbr_vaccation_aecrit_sec + \
+                self.nbr_vaccation_apecrit_sec + self.nbr_vaccation_ecrit_sec
+            self.indemnite_cm = self.session.indemnite_cm
+        return value
+
+    @validates('form_centre')
+    def update_form_centre(self, key, value):
+        if self.session:
+            self.indemnite_chefcentre = SessionCentre.get_indemnite_sec(
+                value, self.session)
+        return value
+
+    @staticmethod
+    def get_frais_org(value) -> float:
+        if value < 17:
+            return 5000
+        if value < 834:
+            return value * 300
+        return 250000
+
+    @staticmethod
+    def get_nbr_membre_sec(value, session) -> int:
+        nbmbr = ceil(value/250)
+        if nbmbr < 2:
+            return 3
+        return nbmbr+2
+
+    @staticmethod
+    def get_vacc_membre_sec_ae(value) -> int:
+        if value <= 750:
+            return 2
+        if value <= 1500:
+            return 4
+        return 6
+
+    @staticmethod
+    def get_indemnite_sec(value, session) -> float:
+        if value == 'C':
+            return session.indemnite_chef_centre_write
+        if value == 'CA':
+            return float(session.indemnite_chef_centre_write) + 50000
+        if value == 'SA':
+            return float(session.indemnite_chef_scentre_write) + 50000
+        return session.indemnite_chef_scentre_write
+
+    @staticmethod
+    def get_vaccation_surv(value, session) -> float:
+        nbsalle = ceil(value/session.nbr_candidat_salle_write)
+        nbsurveil = nbsalle * session.nbr_surveillant_salle_write
+        nbsurvsal = nbsalle // session.nbr_salle_surveillants_write
+        nbvacc = session.nbr_vaccation_jour_write * session.nbr_jour_examen_write
+        return (nbsurveil+nbsurvsal) * nbvacc * session.taux_vaccation_surveillant_write
 
     def insert(self):
         db.session.add(self)
@@ -667,9 +961,11 @@ class SessionCentre(db.Model):
         self.centre_id = data['centre']
         self.isForDisabled = data['for_disabled']
         self.isForOral = data['for_oral']
+        self.isForHarmo = data['for_harmo']
         self.nbr_candidat_ecrit = data['nbr_candidat_ecrit']
         self.nbr_candidat_handicap = data['nbr_candidat_handicap']
         self.nbr_copies_marked = data['nbr_copies_marked']
+        self.nbr_matiere = data['nbr_matiere']
         self.nbr_candidat_marked = data['nbr_candidat_marked']
         self.nbr_candidat_delib = data['nbr_candidat_delib']
         self.nbr_candidat_oral = data['nbr_candidat_oral']
@@ -694,9 +990,141 @@ class SessionCentre(db.Model):
             text("""SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id = :p2))""")
         ).params(p1=session_id, p2=department_id).all()
         return centres
-        """ result = db.session.execute('SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id = :p2))', {
-                                    'p1': session_id, 'p2': department_id})
-        return result.fetchall() """
+
+    @classmethod
+    def centre_session_region_harmo(cls, session_id, region_id):
+        centre = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c WHERE c."isForHarmo" = true AND c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        ).params(p1=session_id, p2=region_id).first()
+        return centre
+
+    @classmethod
+    def centre_session_region_oral(cls, session_id, region_id):
+        centre = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c WHERE c."isForOral" = true AND c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        ).params(p1=session_id, p2=region_id).all()
+        return centre
+
+    @staticmethod
+    def centre_session_region_eff(session_id, region_id):
+        if region_id:
+            statement = text("""SELECT SUM(c.nbr_candidat_ecrit) AS eff_total FROM sessioncentres c  WHERE c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        else:
+            statement = text(
+                """SELECT SUM(c.nbr_candidat_ecrit) AS eff_total FROM sessioncentres c  WHERE c.session_id = :p1 """)
+        result = db.engine.execute(
+            statement, {'p1': session_id, 'p2': region_id})
+        effs = result.first()
+        return effs[0]
+
+    @staticmethod
+    def centre_session_nbmat(session_id):
+        statement = text(
+            """SELECT SUM(c.nbr_matiere) AS eff_total FROM sessioncentres c  WHERE c."isForHarmo" = true AND c.session_id = :p1""")
+        result = db.engine.execute(
+            statement, {'p1': session_id})
+        effs = result.first()
+        return effs[0]
+
+    @classmethod
+    def centre_session_region(cls, session_id, region_id):
+        centres = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        ).params(p1=session_id, p2=region_id).all()
+        return centres
+
+    @classmethod
+    def dispatch_session_region(cls, session_id, region_id):
+        session = Session.query.filter(Session.id == session_id).one_or_none()
+        if session is None:
+            return {}
+
+        region = Region.query.filter(Region.id == region_id).one_or_none()
+
+        effs = SessionCentre.centre_session_region_eff(session_id, region_id)
+        nb_member = 6 if effs <= 5000 else ceil(effs / 5000) + 3
+        indemnite = session.indemnite_chef_sec_dispacth
+        if region is None:
+            nb_member = 0
+            indemnite = 0
+            for i in range(1, 10):
+                eff = SessionCentre.centre_session_region_eff(session_id, i)
+                if eff:
+                    indemnite += session.indemnite_chef_sec_dispacth
+                    nb_member += 6 if eff <= 5000 else ceil(eff / 5000) + 3
+
+        nbr_vac_membre = session.nbr_vaccation_prepa_dispatch + session.nbr_vaccation_awrite_dispatch + \
+            session.nbr_vaccation_acorrect_dispatch + session.nbr_vaccation_adelib_dispatch
+        montant_vac = nb_member * nbr_vac_membre * \
+            session.taux_vaccation_membre_dispatch
+        return {
+            'region': region.region_name if region is not None else "Nationale",
+            'effectif': effs,
+            'nb_member': nb_member,
+            'nbr_vac_prepa': session.nbr_vaccation_prepa_dispatch,
+            'nbr_vac_ae': session.nbr_vaccation_awrite_dispatch,
+            'nbr_vac_ac': session.nbr_vaccation_acorrect_dispatch,
+            'nbr_vac_ad': session.nbr_vaccation_adelib_dispatch,
+            'nbr_vac_membre': nbr_vac_membre,
+            'taux_vac': session.taux_vaccation_membre_dispatch,
+            'montant_vac': montant_vac,
+            'indemnite': indemnite,
+            'frais': montant_vac + indemnite
+        }
+
+    @classmethod
+    def harmo_session_region(cls, session_id, region_id):
+        session = Session.query.filter(Session.id == session_id).one_or_none()
+        if session is None:
+            return {}
+
+        region = Region.query.filter(Region.id == region_id).one_or_none()
+
+        total_vac_jury = session.nbr_membre_jury_harmo * \
+            session.nbr_vaccation_membre_harmo + session.nbr_vaccation_responsable_harmo
+
+        if region is None:
+            nbr_matiere = SessionCentre.centre_session_nbmat(session_id)
+            return {
+                'region': "National",
+                'effectif': SessionCentre.centre_session_region_eff(session_id, region_id),
+                'nbr_matiere': ceil(nbr_matiere/10),
+                'nbr_vac_resp': session.nbr_vaccation_responsable_harmo,
+                'nbr_vac_mem': session.nbr_vaccation_membre_harmo,
+                'nbr_memb_jur': session.nbr_membre_jury_harmo,
+                'total_vac_jury': total_vac_jury,
+                'taux_vac': session.taux_vaccation_harmo,
+                'frais': total_vac_jury * session.taux_vaccation_harmo * nbr_matiere
+            }
+
+        centre = SessionCentre.centre_session_region_harmo(
+            session_id, region_id)
+
+        return {
+            'region': region.region_name,
+            'effectif': SessionCentre.centre_session_region_eff(session_id, region_id),
+            'nbr_matiere': centre.nbr_matiere,
+            'nbr_vac_resp': session.nbr_vaccation_responsable_harmo,
+            'nbr_vac_mem': session.nbr_vaccation_membre_harmo,
+            'nbr_memb_jur': session.nbr_membre_jury_harmo,
+            'total_vac_jury': total_vac_jury,
+            'taux_vac': session.taux_vaccation_harmo,
+            'frais': total_vac_jury * session.taux_vaccation_harmo * centre.nbr_matiere
+        }
+
+    @classmethod
+    def centrecorrect_session_region(cls, session_id, region_id):
+        centres = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.type_centre IN ('EC', 'ECD', 'EPC', 'EPCD') AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        ).params(p1=session_id, p2=region_id).all()
+        return centres
+
+    @classmethod
+    def centredelib_session_region(cls, session_id, region_id):
+        centres = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.type_centre IN ('ECD', 'EPCD') AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        ).params(p1=session_id, p2=region_id).all()
+        return centres
 
     def __repr__(self):
-        return f'<Session ID: {self.id} Name: {self.session_name} >'
+        return f'<Centre ID: {self.id} Name: {self.form_centre                                                                                        } >'

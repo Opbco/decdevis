@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
 import { DataGrid, GridActionsCellItem, GridToolbarContainer, GridToolbarExport } from '@mui/x-data-grid';
 import Swal from "sweetalert2";
 import Snackbar from '@mui/material/Snackbar';
@@ -83,8 +84,9 @@ export default function Session() {
         setSession(row);
     }
 
-    const goCentres = (row) => () => {
-        navigate(`/exams/centres`, { state: { data: row } });
+    const goPage = (row, page) => () => {
+        const route = page === "centre" ? `/exams/centres` : `/exams/stats`
+        navigate(route, { state: { data: row } });
     }
 
     const columns = [
@@ -117,7 +119,14 @@ export default function Session() {
                         icon={<HomeWorkRounded />}
                         label="Centres"
                         className="textPrimary"
-                        onClick={goCentres(row)}
+                        onClick={goPage(row, "centre")}
+                        color="inherit"
+                    />,
+                    <GridActionsCellItem
+                        icon={<AnalyticsIcon />}
+                        label="Statistiques"
+                        className="textPrimary"
+                        onClick={goPage(row, "stats")}
                         color="inherit"
                     />,
                 ];

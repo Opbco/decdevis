@@ -14,6 +14,7 @@ import ExploreIcon from "@mui/icons-material/Explore";
 import AssistantDirectionIcon from "@mui/icons-material/AssistantDirection";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import NoteAltIcon from "@mui/icons-material/NoteAlt";
+import HomeWorkRoundedIcon from '@mui/icons-material/HomeWorkOutlined';
 
 const drawerWidth = 300;
 
@@ -88,6 +89,16 @@ export default function Drawer({ open }) {
       </List>
       <Divider />
       <List>
+        <ListItem disablePadding>
+          <ListItemButton>
+            <ListItemIcon>
+              <HomeWorkRoundedIcon color="secondary" />
+            </ListItemIcon>
+            <Link to="/exams/centres">
+              <ListItemText primary="Centres | Sous-Centres" />
+            </Link>
+          </ListItemButton>
+        </ListItem>
         <ListItem disablePadding>
           <ListItemButton>
             <ListItemIcon>

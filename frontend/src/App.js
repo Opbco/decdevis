@@ -12,13 +12,14 @@ function App() {
   const [open, setOpen] = React.useState(true);
 
   return (
-    <div className="App">
+    <Box>
       <AppBar openDrawer={setOpen} />
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           marginTop: 8,
+          maxWidth: "100vw",
         }}
       >
         <Drawer open={open} />
@@ -26,7 +27,7 @@ function App() {
           <Outlet />
         </main>
       </Box>
-    </div>
+    </Box>
   );
 }
 
