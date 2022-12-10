@@ -686,6 +686,27 @@ class SessionCentre(db.Model):
             'frais': SessionCentre.get_frais_org(int(self.nbr_candidat_ecrit)),
         }
 
+    def handJson(self):
+        nb_salle_hand = ceil(self.nbr_candidat_handicap /
+                             self.session.nbr_candidat_salle_hand_write)
+        nb_membre = nb_salle_hand * self.session.nbr_surveillant_salle_hand_write
+        total = nb_membre * (self.session.nbr_vaccation_transcript_hand_write +
+                             self.session.nbr_vaccation_deroulement_hand_write) * self.session.taux_vaccation_surveillant_hand_write
+        return {
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'effectif': self.nbr_candidat_handicap,
+            'nb_salle': nb_salle_hand,
+            'nb_membre': self.session.nbr_surveillant_salle_hand_write,
+            'nb_vac_transc': self.session.nbr_vaccation_transcript_hand_write,
+            'nb_vac_deroul': self.session.nbr_vaccation_deroulement_hand_write,
+            'indemnite': self.session.indemnite_chef_atelier_hand_write,
+            'taux_vac': self.session.taux_vaccation_surveillant_hand_write,
+            'total': total + self.session.indemnite_chef_atelier_hand_write,
+        }
+
     def vacOralJson(self):
         nb_sous_atelier = ceil(self.nbr_candidat_oral /
                                self.session.nbr_candidat_atelier_oral)
@@ -866,7 +887,131 @@ class SessionCentre(db.Model):
             'nbr_candidat_oral': self.nbr_candidat_oral,
             'nbr_candidat_epreuve_facultive': self.nbr_candidat_epreuve_facultive,
             'nbr_candidat_inapte': self.nbr_candidat_inapte,
+            'frais_organisation': SessionCentre.get_frais_org(int(self.nbr_candidat_ecrit)),
+            'indemnite_chef_centre': SessionCentre.get_indemnite_sec(self.form_centre, self.session),
+            'vac_surveillances': self.getVacSurveillance(),
+            'vac_surveillances_hand': self.getVacSurveilHand(),
+            'vac_jury_oral': self.getVacJuryOral(),
+            'vac_sec_ind': self.getVacChefSecInd(),
+            'charge_mission': self.getChargeMision(),
+            'vac_correct_ind': self.getVacCorrect(),
+            'indemnite_deliberation': self.getIndemDelib(),
+            'vac_jury_harmonisation': self.getMontantHarmo()
         }
+
+    def Synthesejson(self, region_id):
+        return {
+            'id': self.id,
+            'region': self.structure.arrondissement.departement.region.region_name,
+            'departement': self.structure.arrondissement.departement.departement_name,
+            'centre': self.centre.structure.sturcture_name if self.centre_id else self.structure.sturcture_name,
+            'scentre': self.structure.sturcture_name,
+            'form': self.form_centre,
+            'type': self.type_centre,
+            'effectif': self.nbr_candidat_ecrit,
+            'nbr_candidat_handicap': self.nbr_candidat_handicap,
+            'nbr_candidat_delib': self.nbr_candidat_delib,
+            'nbr_candidat_oral': self.nbr_candidat_oral,
+            'nbr_candidat_epreuve_facultive': self.nbr_candidat_epreuve_facultive,
+            'nbr_candidat_inapte': self.nbr_candidat_inapte,
+            'frais_organisation': SessionCentre.get_frais_org(int(self.nbr_candidat_ecrit)),
+            'indemnite_chef_centre': SessionCentre.get_indemnite_sec(self.form_centre, self.session),
+            'vac_surveillances': self.getVacSurveillance(),
+            'vac_surveillances_hand': self.getVacSurveilHand(),
+            'vac_jury_oral': self.getVacJuryOral(),
+            'vac_sec_ind': self.getVacChefSecInd(),
+            'charge_mission': self.getChargeMision(),
+            'vac_correct_ind': self.getVacCorrect(),
+            'indemnite_deliberation': self.getIndemDelib(),
+            'dispatching': SessionCentre.dispatch_session_region_montant(self.session.id, region_id),
+            'vac_jury_harmonisation': self.getMontantHarmo()
+        }
+
+    def getIndemDelib(self):
+        if 'D' not in self.type_centre:
+            return 0
+
+        nbr_jury = self.nbr_candidat_delib // self.session.nbr_candidat_jury_delib
+        total_vac_jury = (self.session.nbr_membre_lecteur_delib * self.session.nbr_vaccation_lecteur_delib) + \
+            (self.session.nbr_vaccation_teneur_delib *
+             self.session.nbr_membre_teneur_delib)
+        montant_indemnite = nbr_jury * \
+            (self.session.indemnite_president_jury_delib +
+             self.session.indemnite_vpresident_jury_delib)
+        montant_vacc = total_vac_jury * self.session.taux_vaccation_membre_delib * nbr_jury
+        return montant_vacc + montant_indemnite
+
+    def getVacCorrect(self):
+        if "C" not in self.type_centre:
+            return 0
+
+        nbr_chef_salle = self.session.nbr_matiere_correct if "C" in self.type_centre else 0
+        nbr_copies = self.nbr_candidat_marked * self.session.nbr_matiere_correct
+        montant = (self.nbr_candidat_epreuve_facultive +
+                   self.nbr_candidat_inapte + nbr_copies) * self.session.taux_copie_correct
+        total = montant + (nbr_chef_salle *
+                           self.session.indemnite_chef_salle_correct)
+        return total
+
+    def getVacSurveillance(self):
+        nbsalle = ceil(self.nbr_candidat_ecrit /
+                       self.session.nbr_candidat_salle_write)
+        nbsurveil = nbsalle * self.session.nbr_surveillant_salle_write
+        nbsurvsal = nbsalle // self.session.nbr_salle_surveillants_write
+        nbvacc = self.session.nbr_vaccation_jour_write * \
+            self.session.nbr_jour_examen_write
+        return (nbsurveil+nbsurvsal) * nbvacc * self.session.taux_vaccation_surveillant_write
+
+    def getVacSurveilHand(self):
+        if not self.isForDisabled:
+            return 0
+        nb_salle_hand = ceil(self.nbr_candidat_handicap /
+                             self.session.nbr_candidat_salle_hand_write)
+        nb_membre = nb_salle_hand * self.session.nbr_surveillant_salle_hand_write
+        total = nb_membre * (self.session.nbr_vaccation_transcript_hand_write +
+                             self.session.nbr_vaccation_deroulement_hand_write) * self.session.taux_vaccation_surveillant_hand_write
+        return total + self.session.indemnite_chef_atelier_hand_write
+
+    def getVacJuryOral(self):
+        if not self.isForOral:
+            return 0
+        nb_sous_atelier = ceil(self.nbr_candidat_oral /
+                               self.session.nbr_candidat_atelier_oral)
+        nombre_total_membre = nb_sous_atelier * self.session.nbr_membre_atelier_oral
+        total_vac = nombre_total_membre * self.session.nbr_vaccation_membre_oral
+        montant = self.session.taux_vaccation_surveillant_oral * total_vac
+        return montant + self.session.indemnite_chef_salle_oral
+
+    def getVacChefSecInd(self):
+        nbr_membre_sec = SessionCentre.get_nbr_membre_sec(
+            self.nbr_candidat_ecrit, self.session)
+        nbr_vaccation_aecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+            self.nbr_candidat_ecrit)
+        nbr_vaccation_ecrit_sec = self.session.nbr_vaccation_jour_sec_write * \
+            self.session.nbr_jour_examen_write
+        nbr_vaccation_apecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+            self.nbr_candidat_ecrit)
+        nbr_vaccation_correct_sec = self.session.nbr_vaccation_sec_correct if "C" in self.type_centre else 0
+        nbr_vaccation_delib_sec = self.session.nbr_vaccation_sec_delib if "D" in self.type_centre else 0
+        indemnite_chef_sec = self.session.indemnite_chef_sec_all if "D" in self.type_centre else self.session.indemnite_chef_sec
+        montant = nbr_membre_sec * (nbr_vaccation_aecrit_sec + nbr_vaccation_ecrit_sec + nbr_vaccation_apecrit_sec +
+                                    nbr_vaccation_correct_sec + nbr_vaccation_delib_sec) * self.session.taux_vaccation_sec
+        total = indemnite_chef_sec + montant
+        return total
+
+    def getChargeMision(self):
+        nbr_vaccation_aecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+            self.nbr_candidat_ecrit)
+        nbr_vaccation_ecrit_sec = self.session.nbr_vaccation_jour_sec_write * \
+            self.session.nbr_jour_examen_write
+        nbr_vaccation_apecrit_sec = SessionCentre.get_vacc_membre_sec_ae(
+            self.nbr_candidat_ecrit)
+        nbr_vaccation_correct_sec = self.session.nbr_vaccation_sec_correct if "C" in self.type_centre else 0
+        nbr_vaccation_delib_sec = self.session.nbr_vaccation_sec_delib if "D" in self.type_centre else 0
+        nbr_vac_cm = nbr_vaccation_aecrit_sec + nbr_vaccation_ecrit_sec + \
+            nbr_vaccation_apecrit_sec + nbr_vaccation_correct_sec * 2 + nbr_vaccation_delib_sec
+
+        return (nbr_vac_cm * self.session.taux_vaccation_cm) + self.session.indemnite_cm
 
     @validates('nbr_candidat_oral')
     def update_nbr_candidat_oral(self, key, value):
@@ -1005,6 +1150,13 @@ class SessionCentre(db.Model):
         ).params(p1=session_id, p2=region_id).all()
         return centre
 
+    @classmethod
+    def centre_session_region_disabled(cls, session_id, region_id):
+        centre = db.session.query(cls).from_statement(
+            text("""SELECT c.* FROM sessioncentres c WHERE c."isForDisabled" = true AND c.session_id = :p1 AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
+        ).params(p1=session_id, p2=region_id).all()
+        return centre
+
     @staticmethod
     def centre_session_region_eff(session_id, region_id):
         if region_id:
@@ -1125,6 +1277,42 @@ class SessionCentre(db.Model):
             text("""SELECT c.* FROM sessioncentres c  WHERE c.session_id = :p1 AND c.type_centre IN ('ECD', 'EPCD') AND c.structure_id in (SELECT id FROM structures WHERE arrondissement_id in (SELECT id FROM arrondissements WHERE departement_id in (SELECT id FROM departements WHERE region_id = :p2)))""")
         ).params(p1=session_id, p2=region_id).all()
         return centres
+
+    @classmethod
+    def dispatch_session_region_montant(cls, session_id, region_id):
+        session = Session.query.filter(Session.id == session_id).one_or_none()
+        if session is None:
+            return {}
+
+        region = Region.query.filter(Region.id == region_id).one_or_none()
+
+        effs = SessionCentre.centre_session_region_eff(session_id, region_id)
+        nb_member = 6 if effs <= 5000 else ceil(effs / 5000) + 3
+        indemnite = session.indemnite_chef_sec_dispacth
+        if region is None:
+            nb_member = 0
+            indemnite = 0
+            for i in range(1, 10):
+                eff = SessionCentre.centre_session_region_eff(session_id, i)
+                if eff:
+                    indemnite += session.indemnite_chef_sec_dispacth
+                    nb_member += 6 if eff <= 5000 else ceil(eff / 5000) + 3
+
+        nbr_vac_membre = session.nbr_vaccation_prepa_dispatch + session.nbr_vaccation_awrite_dispatch + \
+            session.nbr_vaccation_acorrect_dispatch + session.nbr_vaccation_adelib_dispatch
+        montant_vac = nb_member * nbr_vac_membre * \
+            session.taux_vaccation_membre_dispatch
+
+        return montant_vac + indemnite
+
+    def getMontantHarmo(self):
+        if not self.isForHarmo:
+            return 0
+        total_vac_jury = self.session.nbr_membre_jury_harmo * \
+            self.session.nbr_vaccation_membre_harmo + \
+            self.session.nbr_vaccation_responsable_harmo
+
+        return total_vac_jury * self.session.taux_vaccation_harmo * self.nbr_matiere
 
     def __repr__(self):
         return f'<Centre ID: {self.id} Name: {self.form_centre                                                                                        } >'

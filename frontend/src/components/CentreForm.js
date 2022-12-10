@@ -359,11 +359,12 @@ export default function CentreForm({
             variant="standard"
           />
           <TextField
-            id="nbr_candidat_inapte"
-            name="nbr_candidat_inapte"
-            label="Nombre de candidats inaptes"
+            disabled={!data?.for_disabled}
+            id="nbr_candidat_handicap"
+            name="nbr_candidat_handicap"
+            label="Nombre de candidats handicapés"
             type="number"
-            value={data?.nbr_candidat_inapte}
+            value={data?.nbr_candidat_handicap}
             onChange={handleDataChange}
             fullWidth
             variant="standard"
@@ -407,6 +408,16 @@ export default function CentreForm({
             label="Nombre de matières (Harmonisation)"
             type="number"
             value={data?.nbr_matiere}
+            onChange={handleDataChange}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            id="nbr_candidat_inapte"
+            name="nbr_candidat_inapte"
+            label="Nombre de candidats inaptes"
+            type="number"
+            value={data?.nbr_candidat_inapte}
             onChange={handleDataChange}
             fullWidth
             variant="standard"

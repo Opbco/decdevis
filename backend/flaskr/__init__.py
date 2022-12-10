@@ -310,9 +310,17 @@ def create_app(test_config=None):
             centres = SessionCentre.query.filter(SessionCentre.type_centre.in_(
                 ['ECD', 'EPCD']), SessionCentre.session_id == session_id).all()
 
+        if type == 'corrind':
+            centres = SessionCentre.query.filter(SessionCentre.type_centre.in_(
+                ['EC', 'ECD', 'EPC', 'EPCD']), SessionCentre.session_id == session_id).all()
+
         if type == 'oralind':
             centres = SessionCentre.query.filter(
                 SessionCentre.isForOral == True, SessionCentre.session_id == session_id).all()
+
+        if type == 'handind':
+            centres = SessionCentre.query.filter(
+                SessionCentre.isForDisabled == True, SessionCentre.session_id == session_id).all()
 
         if (format != 'csv' and type != 'all') and region != 0:
             if type == 'corrind':
@@ -324,11 +332,12 @@ def create_app(test_config=None):
             elif type == 'oralind':
                 centres = SessionCentre.centre_session_region_oral(
                     session_id, region)
+            elif type == 'handind':
+                centres = SessionCentre.centre_session_region_disabled(
+                    session_id, region)
             else:
                 centres = SessionCentre.centre_session_region(
                     session_id, region)
-
-        print(centres)
 
         if type == 'organisation':
             for centre in centres:
@@ -358,9 +367,17 @@ def create_app(test_config=None):
             for centre in centres:
                 data.append(centre.vacOralJson())
 
+        if type == 'handind':
+            for centre in centres:
+                data.append(centre.handJson())
+
         if type == 'all':
             for centre in centres:
                 data.append(centre.json())
+
+        if type == 'synthese':
+            for centre in centres:
+                data.append(centre.Synthesejson(region))
 
         if type == 'harmo':
             data.append(SessionCentre.harmo_session_region(

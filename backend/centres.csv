@@ -1,4 +1,8 @@
-region;departement;centre;scentre;form;effectif;nbr_jury;nbr_membre_lec;vac_membre_lec;nbr_membre_ten;vac_membre_ten;total_vac_jury;taux_vac_jury;montant_vac_jury;nbr_pr_jury;indemnite_pr_jury;nbr_vpr_jury;indemnite_vpr_jury;montant_indemnite;total
-Centre;Lékié;Lycée Bilingue d'Obala;Lycée Bilingue d'Obala;C;1509;2;9;7;2;10;83;1500.0;249000.0;2;85000.0;2;40000.0;250000.0;499000.0
-Centre;Mfoundi;Lycée Bilingue de Yaoundé - Essos;Lycée Bilingue de Yaoundé - Essos;C;1430;1;9;7;2;10;83;1500.0;124500.0;1;85000.0;1;40000.0;125000.0;249500.0
-Adamaoua;Vina;Lycée Bilingue de Bamyanga;Lycée Bilingue de Bamyanga;C;788;1;9;7;2;10;83;1500.0;124500.0;1;85000.0;1;40000.0;125000.0;249500.0
+id;region;departement;centre;scentre;form;type;effectif;nbr_candidat_handicap;nbr_candidat_delib;nbr_candidat_oral;nbr_candidat_epreuve_facultive;nbr_candidat_inapte;frais_organisation;indemnite_chef_centre;vac_surveillances;vac_surveillances_hand;vac_jury_oral;vac_sec_ind;charge_mission;vac_correct_ind;indemnite_deliberation;vac_jury_harmonisation
+13;Centre;Lékié;Lycée Bilingue d'Obala;Lycée Bilingue d'Obala;C;ECD;505;0;1509;52;3500;0;151500;75000.0;396000.0;0;59000.0;282500.0;119000.0;2394900.0;499000.0;0
+9;Centre;Mfoundi;Lycée Bilingue de Yaoundé - Essos;Lycée Bilingue de Yaoundé - Essos;C;ECD;1025;0;1430;91;1577;0;250000;75000.0;804000.0;0;71000.0;417500.0;125000.0;2183900.0;249500.0;445500.0
+10;Adamaoua;Faro et Déo;Lycée Technique de Tignère;Lycée Technique de Tignère;C;EC;234;0;;60;0;0;70200;75000.0;180000.0;0;59000.0;134500.0;104000.0;2054800.0;0;0
+11;Adamaoua;Vina;Lycée Bilingue de Bamyanga;Lycée Bilingue de Bamyanga;C;ECD;322;3;788;96;1589;0;96600;75000.0;264000.0;71000.0;71000.0;236000.0;119000.0;1185200.0;249500.0;412500.0
+8;Centre;Mfoundi;Lycée Bilingue d'Application de Yaoundé;Lycée Bilingue d'Application de Yaoundé;C;EC;868;5;;;1500;0;250000;75000.0;672000.0;71000.0;0;265000.0;110000.0;2216900.0;0;0
+14;Centre;Lékié;Lycée Bilingue d'Obala;Lycée de Monatélé;SC;E;435;0;;;0;0;130500;50000.0;348000.0;0;0;136000.0;89000.0;0;0;0
+12;Adamaoua;Vina;Lycée Bilingue de Bamyanga;Lycée Bilingue de Malang;SC;E;456;0;;50;0;0;136800;50000.0;372000.0;0;59000.0;136000.0;89000.0;0;0;0

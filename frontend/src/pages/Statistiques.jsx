@@ -27,6 +27,8 @@ import { withEmotionCache } from "@emotion/react";
 import Harmo from "../components/Harmo";
 import Dispatching from "../components/Dispatching";
 import VacOralInd from "../components/VacOralInd";
+import Handicap from "../components/Handicap";
+import Synthese from "../components/Synthese";
 
 const BoxContainer = styled("div")`
   ${({ theme, width }) => `
@@ -167,6 +169,7 @@ export default function Statistiques() {
                     <Tab label="Vaccation / Indemnité délibérations" {...a11yProps(9)} />
                     <Tab label="Vaccation sécrétariat dispatching" {...a11yProps(10)} />
                     <Tab label="Vaccation jury harmonisations" {...a11yProps(11)} />
+                    <Tab label="Synthèse" {...a11yProps(12)} />
                 </Tabs>
             </AppBar>
             <SwipeableViews
@@ -184,7 +187,7 @@ export default function Statistiques() {
                     <VaccSurvEcrit setDownload={setDownload} download={download} session={session} region={region} />
                 </TabPanel>
                 <TabPanel setDownload={setDownload} regions={regions} region={region} setRegion={setRegion} width={300} value={value} index={3} dir={theme.direction} session={session} title="GUIDE DE PAIEMENT DES VACATIONS DE SURVEILLANCE DES HANDICAPES MALVOYANTS">
-                    Vaccation surveillance (Handicapés)
+                    <Handicap setDownload={setDownload} download={download} session={session} region={region} />
                 </TabPanel>
                 <TabPanel setDownload={setDownload} regions={regions} region={region} setRegion={setRegion} width={290} value={value} index={4} dir={theme.direction} session={session} title="GUIDE DE PAIEMENT DES VACATIONS DU JURY ORAL COMMUNICATION ET DES INDEMNITES DE CHEF DE SALLE">
                     <VacOralInd setDownload={setDownload} download={download} session={session} region={region} />
@@ -209,6 +212,9 @@ export default function Statistiques() {
                 </TabPanel>
                 <TabPanel setDownload={setDownload} regions={regions} region={region} setRegion={setRegion} width={290} value={value} index={11} dir={theme.direction} session={session} title="GUIDE DE PAIEMENT DES VACATIONS DU JURY D'HARMONISATION DES CORRIGES">
                     <Harmo setDownload={setDownload} download={download} session={session} region={region} />
+                </TabPanel>
+                <TabPanel setDownload={setDownload} regions={regions} region={region} setRegion={setRegion} width="auto" value={value} index={12} dir={theme.direction} session={session} title="SYNTHESE GUIDE DE PAIEME">
+                    <Synthese setDownload={setDownload} download={download} session={session} region={region} />
                 </TabPanel>
             </SwipeableViews>
         </Box>

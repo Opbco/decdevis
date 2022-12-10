@@ -49,36 +49,29 @@ const columns = [
     format: (value) => value.toLocaleString("fr-Fr"),
   },
   {
-    id: "nb_sous_atelier",
-    label: "Nbr sous-atelier",
-    minWidth: 18,
-    verticale: true,
-    format: (value) => value.toLocaleString("fr-Fr"),
-  },
-  {
-    id: "nb_matiere_oral",
-    label: "Nbr de matières",
-    minWidth: 18,
-    verticale: true,
-    format: (value) => value.toLocaleString("fr-Fr"),
-  },
-  {
-    id: "nb_vac_membre",
-    label: "Nbr Vac par membre",
-    minWidth: 18,
-    verticale: true,
-    format: (value) => value.toLocaleString("fr-Fr"),
-  },
-  {
-    id: "nombre_total_membre",
-    label: "Nbr total membres par sous-atelier",
+    id: "nb_salle",
+    label: "Nbre salles",
     minWidth: 18,
     verticale: false,
     format: (value) => value.toLocaleString("fr-Fr"),
   },
   {
-    id: "total_vac",
-    label: "Total Vacations",
+    id: "nb_membre",
+    label: "Nbre Membres",
+    minWidth: 18,
+    verticale: false,
+    format: (value) => value.toLocaleString("fr-Fr"),
+  },
+  {
+    id: "nb_vac_transc",
+    label: "Vacation transcription",
+    minWidth: 18,
+    verticale: false,
+    format: (value) => value.toLocaleString("fr-Fr"),
+  },
+  {
+    id: "nb_vac_deroul",
+    label: "Vacation Déroulement",
     minWidth: 18,
     verticale: false,
     format: (value) => value.toLocaleString("fr-Fr"),
@@ -91,17 +84,10 @@ const columns = [
     format: (value) => value.toLocaleString("fr-Fr"),
   },
   {
-    id: "montant",
-    label: "Montant",
-    minWidth: 30,
-    verticale: false,
-    format: (value) => value.toLocaleString("fr-Fr"),
-  },
-  {
     id: "indemnite",
-    label: "Indemnité Chef salle",
+    label: "Chef atelier Transcription/Déroulement",
     minWidth: 45,
-    verticale: true,
+    verticale: false,
     format: (value) => value.toLocaleString("fr-Fr"),
   },
   {
@@ -113,7 +99,7 @@ const columns = [
   },
 ];
 
-export default function VacOralInd({ download, setDownload, session, region }) {
+export default function Handicap({ download, setDownload, session, region }) {
   const [rows, setRows] = useState([]);
   const protectedApi = useApiRequest();
   const { t } = useTranslation(["common"]);
@@ -125,7 +111,7 @@ export default function VacOralInd({ download, setDownload, session, region }) {
   React.useEffect(() => {
     protectedApi
       .get(
-        `/sessions/${session.id}/sessioncentres?type=oralind&region=${region?.id}`
+        `/sessions/${session.id}/sessioncentres?type=handind&region=${region?.id}`
       )
       .then((res) => {
         let data = res.data.data;
@@ -163,7 +149,7 @@ export default function VacOralInd({ download, setDownload, session, region }) {
     if (download) {
       protectedApi
         .get(
-          `/sessions/${session.id}/sessioncentres?type=oralind&format=csv&region=${region?.id}`,
+          `/sessions/${session.id}/sessioncentres?type=handind&format=csv&region=${region?.id}`,
           {
             responseType: "blob",
           }
@@ -172,7 +158,7 @@ export default function VacOralInd({ download, setDownload, session, region }) {
           const url = window.URL.createObjectURL(new Blob([res.data]));
           const link = document.createElement("a");
           link.href = url;
-          link.setAttribute("download", "vacations_oral_ind.csv");
+          link.setAttribute("download", "vacations_surv_ind_hand.csv");
           link.click();
           setDownload(false);
           window.URL.revokeObjectURL(url);
@@ -263,24 +249,18 @@ export default function VacOralInd({ download, setDownload, session, region }) {
               {ccyFormatTotalNombre(rows, "effectif")}
             </StyledTableCell>
             <StyledTableCell>
-              {ccyFormatTotalNombre(rows, "nb_sous_atelier")}
+              {ccyFormatTotalNombre(rows, "nb_salle")}
             </StyledTableCell>
             <StyledTableCell>
-              {ccyFormatTotalNombre(rows, "nb_matiere_oral")}
+              {ccyFormatTotalNombre(rows, "nb_membre")}
             </StyledTableCell>
             <StyledTableCell>
-              {ccyFormatTotalNombre(rows, "nb_vac_membre")}
+              {ccyFormatTotalNombre(rows, "nb_vac_transc")}
             </StyledTableCell>
             <StyledTableCell>
-              {ccyFormatTotalNombre(rows, "nombre_total_membre")}
-            </StyledTableCell>
-            <StyledTableCell>
-              {ccyFormatTotalNombre(rows, "total_vac")}
+              {ccyFormatTotalNombre(rows, "nb_vac_deroul")}
             </StyledTableCell>
             <StyledTableCell>...</StyledTableCell>
-            <StyledTableCell>
-              {ccyFormatTotalMontant(rows, "montant")}
-            </StyledTableCell>
             <StyledTableCell>
               {ccyFormatTotalMontant(rows, "indemnite")}
             </StyledTableCell>
