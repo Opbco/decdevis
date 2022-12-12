@@ -975,6 +975,9 @@ class SessionCentre(db.Model):
     def getVacJuryOral(self):
         if not self.isForOral:
             return 0
+
+        if self.nbr_candidat_oral is None:
+            return 0
         nb_sous_atelier = ceil(self.nbr_candidat_oral /
                                self.session.nbr_candidat_atelier_oral)
         nombre_total_membre = nb_sous_atelier * self.session.nbr_membre_atelier_oral

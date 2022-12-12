@@ -99,7 +99,27 @@ export default function Centres() {
     }
 
     const handleDivideClick = (row) => () => {
-        const centreAssist = { ...row, id: -1, structure: null, nbr_candidat_ecrit: 0, centre: { ...row }, form: row.form === 'C' ? 'CA' : 'SA', type: 'E', isNew: true, divide: true }
+        const centreAssist = {
+            ...row,
+            id: -1,
+            structure: null,
+            nbr_candidat_ecrit: Math.trunc(row.nbr_candidat_ecrit / 2),
+            for_harmo: false,
+            for_disabled: false,
+            for_oral: false,
+            nbr_candidat_delib: 0,
+            nbr_candidat_epreuve_facultive: 0,
+            nbr_candidat_handicap: 0,
+            nbr_candidat_inapte: 0,
+            nbr_candidat_marked: 0,
+            nbr_candidat_oral: 0,
+            nbr_copies_marked: 0,
+            centre: { ...row },
+            form: row.form === 'C' ? 'CA' : 'SA',
+            type: 'E',
+            isNew: true,
+            divide: true
+        }
         setOpen(true);
         setCentre(centreAssist);
     }

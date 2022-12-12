@@ -71,6 +71,9 @@ export default function CentreForm({
       departement: null,
       arrondissement: null,
     };
+
+    console.table(centre);
+    
     if (data.id === -1) {
       protectedApi
         .post(`/sessioncentres`, centre)

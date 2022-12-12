@@ -453,7 +453,7 @@ def create_app(test_config=None):
             abort(404)
         try:
             centre = SessionCentre(session_id=data["session"], structure_id=data["structure"], form_centre=data["form"], centre_id=data['centre'],
-                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"])
+                                   type_centre=data["type"], isForDisabled=data["for_disabled"], isForOral=data["for_oral"], nbr_candidat_ecrit=data['nbr_candidat_ecrit'])
             centre.insert()
             if data.get('divide', False):
                 SessionCentre.getByDivide(
